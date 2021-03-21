@@ -1,0 +1,17 @@
+$material-design-icons-font-directory-path: '~material-design-icons-iconfont/dist/fonts/';
+@import '~material-design-icons-iconfont/src/material-design-icons';
+
+.mat-icon {
+    display: inline;
+    vertical-align: middle;
+    &.mat-icon-home {
+		@include material-icon('home');
+	}
+}
+.path {
+	padding-left: 1rem;
+	a {
+		&:link { text-decoration: none; }
+		&:visited { text-decoration: none; }
+	}
+}

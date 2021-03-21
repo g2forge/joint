@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+	<system.webServer>
+		<rewrite>
+			<rules>
+				<rule name="Joint UI Angular Routes" stopProcessing="true">
+					<match url=".*" />
+					<conditions logicalGrouping="MatchAll">
+						<!-- Don't rewrite things that actually exist -->
+						<add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+						<add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+						<!-- Only rewrite directories & HTML (not images, that makes no sense) -->
+						<add input="{PATH_INFO}" pattern="^/?(.*/)*([^./]+|[^/]+\.html)\$" />
+					</conditions>
+					<action type="Rewrite" url="$base-href$" />
+				</rule>
+			</rules>
+		</rewrite>
+	</system.webServer>
+</configuration>

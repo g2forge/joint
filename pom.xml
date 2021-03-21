@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<artifactId>joint</artifactId>
+	<packaging>pom</packaging>
+
+	<parent>
+		<groupId>com.g2forge.joint</groupId>
+		<artifactId>jo-project</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>jo-project/pom.xml</relativePath>
+	</parent>
+
+	<name>joint</name>
+	<description>Organizing, understanding and broadcasting information requires a joint effort.</description>
+
+	<modules>
+		<module>jo-project</module>
+		<module>jo-core</module>
+		<module>jo-ui</module>
+		<module>jo-md</module>
+		<module>jo-plantuml</module>
+		<module>jo-ssg</module>
+		<module>jo-github</module>
+		<module>jo-joint</module>
+	</modules>
+</project>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>jo-ssg</artifactId>
+
+	<parent>
+		<groupId>com.g2forge.joint</groupId>
+		<artifactId>jo-project</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../jo-project/pom.xml</relativePath>
+	</parent>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-md</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-plantuml</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-ui</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-github</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.g2forge.gearbox</groupId>
+			<artifactId>gb-cli</artifactId>
+			<version>${gearbox.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.alexandria</groupId>
+			<artifactId>ax-filesystem-memory</artifactId>
+			<version>${alexandria.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>${mavenresources.version}</version>
+				<configuration>
+					<includeEmptyDirs>true</includeEmptyDirs>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

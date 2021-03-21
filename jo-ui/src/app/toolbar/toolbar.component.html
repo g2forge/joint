@@ -1,0 +1,7 @@
+<mat-toolbar>
+	<span>{{ config == null ? "Joint" : config!.title }}</span>
+	<span class="path">
+		<a [routerLink]="'/'"><mat-icon class="mat-icon-home" aria-hidden="false" aria-label="Home icon"></mat-icon></a>
+		<ng-content select="[app-toolbar-path]"></ng-content>
+	</span>
+</mat-toolbar>
