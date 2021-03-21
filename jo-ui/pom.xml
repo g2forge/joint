@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>jo-ui</artifactId>
+
+	<parent>
+		<groupId>com.g2forge.joint</groupId>
+		<artifactId>jo-project</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../jo-project/pom.xml</relativePath>
+	</parent>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.g2forge.joint</groupId>
+			<artifactId>jo-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.g2forge.gearbox</groupId>
+			<artifactId>gb-maven</artifactId>
+			<version>${gearbox.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>ST4</artifactId>
+			<version>${stringtemplate.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>${basedir}/dist</directory>
+			</resource>
+		</resources>
+
+		<plugins>
+			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.11.2</version>
+				<configuration>
+					<nodeVersion>v14.16.0</nodeVersion>
+					<npmVersion>6.14.11</npmVersion>
+				</configuration>
+				<executions>
+					<execution>
+						<id>install node and npm</id>
+						<goals>
+							<goal>install-node-and-npm</goal>
+						</goals>
+						<phase>initialize</phase>
+					</execution>
+					<execution>
+						<id>run npm install</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>initialize</phase>
+						<configuration>
+							<arguments>install</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run ng install</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>initialize</phase>
+						<configuration>
+							<arguments>install -g @angular/cli</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run init script</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>initialize</phase>
+						<configuration>
+							<arguments>run init</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run npm resources</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>generate-sources</phase>
+						<configuration>
+							<arguments>run resources</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>run npm test</id>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<phase>test</phase>
+						<configuration>
+							<arguments>run test -- --watch=false</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>exec-maven-plugin</artifactId>
+										<versionRange>[1.6.0,)</versionRange>
+										<goals>
+											<goal>java</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute></execute>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>eclipse</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>install node and npm</id>
+								<phase>none</phase>
+							</execution>
+							<execution>
+								<id>run npm install</id>
+								<phase>none</phase>
+							</execution>
+							<execution>
+								<id>run ng install</id>
+								<phase>none</phase>
+							</execution>
+							<execution>
+								<id>run npm resources</id>
+								<phase>none</phase>
+							</execution>
+							<execution>
+								<id>run npm test</id>
+								<phase>none</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>no-test</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>run npm test</id>
+								<phase>none</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>ui-build</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>com.github.eirslett</groupId>
+						<artifactId>frontend-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>run npm resources</id>
+								<phase>none</phase>
+							</execution>
+							<execution>
+								<id>run npm test</id>
+								<phase>none</phase>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>

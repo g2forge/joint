@@ -1,0 +1,6 @@
+SELF_DIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd -P)
+SELF=${SELF_DIR}/$(basename ${BASH_SOURCE[0]})
+
+UI_DIR="$(cd "${SELF_DIR}/jo-ui" && pwd -P)"
+export PATH="${UI_DIR}/node:${UI_DIR}/bin:${PATH}"
+alias ng="npm run -- ng"
