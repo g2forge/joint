@@ -53,8 +53,8 @@ public class TestPlantUMLConversionType {
 			}
 
 			HAssert.assertTrue(Files.isRegularFile(actual));
-			HAssert.assertThat(Files.size(actual), Matchers.greaterThan(40000l));
-			HAssert.assertThat(Files.size(actual), Matchers.lessThan(55000l));
+			HAssert.assertThat(Files.size(actual), Matchers.greaterThan(2700l));
+			HAssert.assertThat(Files.size(actual), Matchers.lessThan(3200l));
 
 			// TODO: Re-enable this when we switch back to image comparison instead of rough file length matching
 			// throw HError.withSuppressed(new AssertionError("None of the candidate images matched!"), throwables);
