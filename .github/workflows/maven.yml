@@ -52,4 +52,4 @@ jobs:
         path: joint
     - name: Build with Maven
       working-directory: ./joint
-      run: mvn -B package --file pom.xml -P release -Dgpg.skip
+      run: mvn -B package --file pom.xml -P release,no-test -Dgpg.skip
