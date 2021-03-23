@@ -13,8 +13,10 @@ import lombok.RequiredArgsConstructor;
 @Builder(toBuilder = true)
 @RequiredArgsConstructor
 public class CloseableConversion implements IConversion {
+	/** The conversion to nest inside this one. */
 	protected final IConversion conversion;
 
+	/** The closeable to call when this conversion is no longer relevant. */
 	protected final ICloseable closeable;
 
 	@Override

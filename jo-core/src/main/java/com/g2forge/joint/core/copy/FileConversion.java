@@ -17,12 +17,16 @@ import lombok.RequiredArgsConstructor;
 @Builder(toBuilder = true)
 @RequiredArgsConstructor
 public class FileConversion implements IConversion {
+	/** The input root directory. */
 	protected final Path inputRoot;
 
+	/** The path to the entry to be converted, relative to the input. */
 	protected final Path inputRelative;
 
+	/** The output root directory. */
 	protected final Path outputRoot;
 
+	/** The type of the conversion, essentially the conversion operation. */
 	protected final IFileConversionType type;
 
 	protected Path getInput() {
