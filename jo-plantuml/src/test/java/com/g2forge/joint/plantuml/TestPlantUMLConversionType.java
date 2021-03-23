@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 
 import com.g2forge.alexandria.java.close.ICloseableSupplier;
+import com.g2forge.alexandria.java.core.error.HError;
 import com.g2forge.alexandria.java.core.resource.IResource;
 import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.io.file.TempDirectory;
@@ -34,7 +37,17 @@ public class TestPlantUMLConversionType {
 			try (final ICloseableSupplier<Path> resourcePath = new Resource(getClass(), "diagram.puml").getPath()) {
 				PlantUMLConversionType.create().convert(null, null, resourcePath.get(), actual);
 			}
-			assertImageEquals(new Resource(getClass(), "diagram.png"), actual);
+
+			final List<Throwable> throwables = new ArrayList<>();
+			for (int i = 0; i < 2; i++) {
+				try {
+					assertImageEquals(new Resource(getClass(), "diagram" + i + ".png"), actual);
+					return;
+				} catch (Throwable throwable) {
+					throwables.add(throwable);
+				}
+			}
+			throw HError.withSuppressed(new AssertionError("None of the candidate images matched!"), throwables);
 		}
 	}
 }
