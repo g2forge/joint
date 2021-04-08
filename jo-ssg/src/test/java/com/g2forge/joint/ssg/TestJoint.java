@@ -62,7 +62,7 @@ public class TestJoint {
 
 		// If the media type is a PNG (probably from PlantUML) then just hash the image data, not the metadata
 		if (MediaType.PNG.equals(mediaType)) {
-			new IFileCompareGroupFunction<CharacterizedImage>() {
+			return new IFileCompareGroupFunction<CharacterizedImage>() {
 				@Override
 				public Map<IFileCompareGroup, Set<Path>> group(Map<Path, ? extends CharacterizedImage> hashes) {
 					final Map<CharacterizedImage, Path> reverse = hashes.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, HCollector.mergeFail(), IdentityHashMap::new));
