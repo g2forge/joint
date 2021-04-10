@@ -143,16 +143,17 @@ public class TestJoint {
 			CopyWalker.builder().target(input).build().walkFileTree(source);
 
 			try (final ICloseable closeable = createJoint(input, output, Operation.Serve).start()) {
+				HConcurrent.wait(500);
 				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(source);
 
 				// Test that new files get copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).append("Text").close();
-				HConcurrent.wait(1000);
+				HConcurrent.wait(500);
 				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(input);
 
 				// Test that modified files get re-copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.APPEND, StandardOpenOption.WRITE).append("Other").close();
-				HConcurrent.wait(1000);
+				HConcurrent.wait(500);
 				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(input);
 			}
 		}
