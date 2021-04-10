@@ -11,6 +11,7 @@ import com.g2forge.alexandria.java.io.watch.FileScanner;
 import com.g2forge.joint.core.Configuration;
 import com.g2forge.joint.core.IComponent;
 import com.g2forge.joint.core.IConversionContext;
+import com.g2forge.joint.core.IConversionContext.Mode;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,15 +19,17 @@ import lombok.extern.slf4j.Slf4j;
 public class ServeOperation implements IOperation {
 	protected static ICloseable startScanning(Configuration configuration, OperationInstance operationInstance) {
 		final OperationInstance[] context = new OperationInstance[] { operationInstance };
-		final FileScanner scanner = new FileScanner(changed -> {
-			final Set<ConversionInstance> reconvert = changed.stream().map(context[0].getConversionsByInput()::get).filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toSet());
-			for (ConversionInstance conversion : reconvert) {
-				conversion.invoke(context[0], IConversionContext.Mode.ServeRebuild);
+		final FileScanner scanner = new FileScanner(event -> {
+			// Invoke the conversions with the correct mode based on the file scanner event
+			final Mode mode = event.isScan() ? IConversionContext.Mode.ServeBuild : IConversionContext.Mode.ServeRebuild;
+			final Set<ConversionInstance> conversions = event.getPaths().stream().map(context[0].getConversionsByInput()::get).filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toSet());
+			for (ConversionInstance conversion : conversions) {
+				conversion.invoke(context[0], mode);
 			}
 
-			for (IComponent component : configuration.getComponents()) {
+			if (!event.isScan()) for (IComponent component : configuration.getComponents()) {
 				// If any of the changed paths starts with any of the components input paths
-				final boolean rescan = component.getInputs().stream().filter(i -> changed.stream().filter(p -> p.startsWith(i)).findAny().isPresent()).findAny().isPresent();
+				final boolean rescan = component.getInputs().stream().filter(i -> event.getPaths().stream().filter(p -> p.startsWith(i)).findAny().isPresent()).findAny().isPresent();
 				if (rescan) {
 					final Set<ConversionInstance> pre = context[0].getConversions();
 					// Scan the component to find all the relevant conversions
@@ -38,7 +41,7 @@ public class ServeOperation implements IOperation {
 					}
 				}
 			}
-		}, throwable -> log.error("Exception while handling changes", throwable), false, context[0].getInputs());
+		}, throwable -> log.error("Exception while handling changes", throwable), true, operationInstance.getInputs());
 		scanner.open();
 		return () -> {
 			HIO.closeAll(scanner, operationInstance);
@@ -47,9 +50,9 @@ public class ServeOperation implements IOperation {
 
 	@Override
 	public ICloseable invoke(Configuration configuration) {
+		// Create the operation instance, and close it ONLY ON FAILURE (otherwise the caller will close it through our return value)
 		final OperationInstance operationInstance = OperationInstance.builder().configuration(configuration).build();
 		try {
-			operationInstance.getConversions().forEach(conversion -> conversion.invoke(operationInstance, IConversionContext.Mode.ServeBuild));
 			return startScanning(configuration, operationInstance);
 		} catch (Throwable throwable) {
 			operationInstance.close();

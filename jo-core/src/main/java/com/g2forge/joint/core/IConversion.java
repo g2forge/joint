@@ -21,7 +21,7 @@ public interface IConversion {
 	/**
 	 * Convert the inputs to the outputs.
 	 * 
-	 * @oaram context The context in which the conversion is happening.
+	 * @param context The context in which the conversion is happening.
 	 */
 	public void invoke(IConversionContext context);
 }

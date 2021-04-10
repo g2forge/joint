@@ -33,14 +33,19 @@ public class CopyComponent implements IComponent {
 			Directory;
 		}
 
+		/** The path to the input entry on disk. */
 		protected final Path path;
 
+		/** The path to the entry, relative to the input root directory. */
 		protected final Path relative;
 
+		/** The file system type. */
 		protected final Type type;
 
+		/** The hierarchical context this entry was discovered in. */
 		protected final Context context;
 
+		/** {@code true} if this is the root entry. */
 		protected final boolean root;
 	}
 
@@ -57,12 +62,15 @@ public class CopyComponent implements IComponent {
 			return new Operation<>(false, null, null);
 		}
 
+		/** Should the map operation descend to children of the input entry? Defaults to {@code true}. */
 		@Builder.Default
 		protected final boolean recurse = true;
 
+		/** The conversion type for the entry. Defaults to copy. */
 		@Builder.Default
 		protected final IFileConversionType conversionType = CopyConversionType.create();
 
+		/** The hierarchical context started by this entry, to be passed to any entries found under this one. */
 		@Builder.Default
 		protected final Context context = null;
 	}
@@ -107,12 +115,16 @@ public class CopyComponent implements IComponent {
 		}
 	}
 
+	/** Input directory; the source of the copy. */
 	protected final Path input;
 
+	/** Output directory; the target of the copy. */
 	protected final Path output;
 
+	/** A working directory. If this directory is nested under the input, it will be skipped. */
 	protected final Path working;
 
+	/** A handler which specifies the exact operation for each entry found in the {@link #input}. */
 	@Builder.Default
 	protected final IFunction1<? super Entry<Object>, ? extends Operation<Object>> handler = entry -> {
 		if (entry.isRoot()) return Operation.builder().conversionType(CreateDirectoryConversionType.create()).build();

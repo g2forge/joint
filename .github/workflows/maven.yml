@@ -2,10 +2,10 @@ name: Java CI with Maven
 "on":
   push:
     branches:
-    - master
+    - main
   pull_request:
     branches:
-    - master
+    - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +17,7 @@ jobs:
     - name: Checkout alexandria
       uses: actions/checkout@v2
       with:
-        repository: alexandria
+        repository: g2forge/alexandria
         path: alexandria
     - name: Build alexandria
       working-directory: ./alexandria
@@ -25,7 +25,7 @@ jobs:
     - name: Checkout habitat
       uses: actions/checkout@v2
       with:
-        repository: habitat
+        repository: g2forge/habitat
         path: habitat
     - name: Build habitat
       working-directory: ./habitat
@@ -33,7 +33,7 @@ jobs:
     - name: Checkout enigma
       uses: actions/checkout@v2
       with:
-        repository: enigma
+        repository: g2forge/enigma
         path: enigma
     - name: Build enigma
       working-directory: ./enigma
@@ -41,7 +41,7 @@ jobs:
     - name: Checkout gearbox
       uses: actions/checkout@v2
       with:
-        repository: gearbox
+        repository: g2forge/gearbox
         path: gearbox
     - name: Build gearbox
       working-directory: ./gearbox
@@ -52,4 +52,4 @@ jobs:
         path: joint
     - name: Build with Maven
       working-directory: ./joint
-      run: mvn -B package --file pom.xml -P release -Dgpg.skip
+      run: mvn -B package --file pom.xml -P release,no-test -Dgpg.skip
