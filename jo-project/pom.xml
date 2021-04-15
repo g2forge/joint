@@ -1,25 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.g2forge.joint</groupId>
 	<artifactId>jo-project</artifactId>
 	<packaging>pom</packaging>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 
 	<parent>
 		<groupId>com.g2forge.enigma</groupId>
 		<artifactId>en-project</artifactId>
-		<version>0.0.10-SNAPSHOT</version>
+		<version>0.0.11-SNAPSHOT</version>
 	</parent>
 
 	<properties>
-		<alexandria.version>0.0.16-SNAPSHOT</alexandria.version>
-		<enigma.version>0.0.10-SNAPSHOT</enigma.version>
-		<gearbox.version>0.0.8-SNAPSHOT</gearbox.version>
-		<habitat.version>0.0.4-SNAPSHOT</habitat.version>
+		<alexandria.version>0.0.17-SNAPSHOT</alexandria.version>
+		<enigma.version>0.0.11-SNAPSHOT</enigma.version>
+		<gearbox.version>0.0.9-SNAPSHOT</gearbox.version>
+		<habitat.version>0.0.5-SNAPSHOT</habitat.version>
 
 		<joint.organization>g2forge</joint.organization>
 		<joint.name>joint</joint.name>
@@ -43,11 +41,6 @@
 			<url>https://github.com/${joint.organization}/${joint.repository}/blob/${project.version}/LICENSE</url>
 		</license>
 	</licenses>
-	<scm>
-		<connection>scm:git:git://github.com/${joint.organization}/${joint.repository}.git</connection>
-		<developerConnection>scm:git:ssh://github.com:${joint.organization}/${joint.repository}.git</developerConnection>
-		<url>http://github.com/${joint.organization}/${joint.repository}/tree/${project.version}</url>
-	</scm>
 
 	<build>
 		<plugins>
