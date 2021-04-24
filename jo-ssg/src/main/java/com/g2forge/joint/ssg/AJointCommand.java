@@ -27,7 +27,7 @@ public abstract class AJointCommand implements Callable<Integer> {
 
 	protected void wait(final ICloseable closeable) {
 		if (closeable != null) {
-			System.out.println("Press \"Enter\" key to continue...");
+			System.out.println("Press the \"Enter\" key to stop serving...");
 			try {
 				System.in.read();
 			} catch (IOException e) {

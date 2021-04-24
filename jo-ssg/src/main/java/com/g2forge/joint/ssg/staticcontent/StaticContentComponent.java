@@ -30,10 +30,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Builder(toBuilder = true)
 @RequiredArgsConstructor
+@Slf4j
 public class StaticContentComponent implements IComponent {
 	@Data
 	@Builder(toBuilder = true)
@@ -104,11 +106,14 @@ public class StaticContentComponent implements IComponent {
 						}
 						final JsonNode json = joint.get("StaticContent");
 						final DirectoryConfiguration configuration = mapper.convertValue(json, DirectoryConfiguration.class);
+						log.debug("Directory configuration for {}: {}", entry.getPath(), configuration);
 
 						final Context.ContextBuilder context = Context.builder().parent(entry.getContext()).path(entry.getPath());
-						final FileSystem filesystem = entry.getPath().getFileSystem();
-						if (configuration.getInclude() != null) context.includes(configuration.getInclude().stream().map(filesystem::getPathMatcher).collect(Collectors.toList()));
-						if (configuration.getExclude() != null) context.excludes(configuration.getExclude().stream().map(filesystem::getPathMatcher).collect(Collectors.toList()));
+						if (configuration != null) {
+							final FileSystem filesystem = entry.getPath().getFileSystem();
+							if (configuration.getInclude() != null) context.includes(configuration.getInclude().stream().map(filesystem::getPathMatcher).collect(Collectors.toList()));
+							if (configuration.getExclude() != null) context.excludes(configuration.getExclude().stream().map(filesystem::getPathMatcher).collect(Collectors.toList()));
+						}
 						retVal.context(context.build());
 					} else if (entry.isRoot()) retVal.context(new Context(null, entry.getPath(), null, null));
 					else retVal.context(entry.getContext());

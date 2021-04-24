@@ -1,0 +1,9 @@
+{
+	"StaticContent": {
+		"include": [
+			"glob:wiki",
+			"glob:wiki/**",
+			"glob:config.json"
+		]
+	}
+}

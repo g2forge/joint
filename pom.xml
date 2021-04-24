@@ -24,5 +24,6 @@
 		<module>jo-ssg</module>
 		<module>jo-github</module>
 		<module>jo-joint</module>
+		<module>jo-maven-plugin</module>
 	</modules>
 </project>
