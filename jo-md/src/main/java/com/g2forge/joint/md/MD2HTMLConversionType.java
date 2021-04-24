@@ -67,16 +67,18 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			final String inputPath = PATH_ESCAPER.unescape(string);
 			final boolean isAbsolute = inputPath.startsWith("/");
 			final Path inputParent = input.getParent();
-			final Path targetNormalized = isAbsolute ? conversion.getInputRoot().resolve(inputPath.substring(1)) : inputParent.resolve(inputPath).normalize();
-			if (!isAbsolute && !targetNormalized.startsWith(conversion.getInputRoot())) { throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot())); }
+			final Path targetInput = isAbsolute ? conversion.getInputRoot().resolve(inputPath.substring(1)) : inputParent.resolve(inputPath);
+			if (!isAbsolute && !targetInput.toAbsolutePath().normalize().startsWith(conversion.getInputRoot().toAbsolutePath().normalize())) {
+				throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot()));
+			}
 
 			// Figure out the conversion that uses that input
-			final Set<IConversion> conversions = context.getConversions(targetNormalized);
-			if (conversions.isEmpty()) return string;
+			final Set<IConversion> conversions = context.getConversions(targetInput);
+			if ((conversions == null) || conversions.isEmpty()) return string;
 			// Get the output of that conversion
 			final Path targetOutput = HCollection.getOne(HCollection.getOne(conversions).getOutputs());
 			// Get the path to that output relative to the parent of the target of this conversion
-			final Path targetRelative = (isAbsolute ? conversion.getOutputRoot() : output.getParent()).relativize(conversion.getOutputRoot().resolve(targetOutput));
+			final Path targetRelative = (isAbsolute ? conversion.getOutputRoot() : output.getParent()).relativize(targetOutput);
 			final String targetString = (isAbsolute ? "/" : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining("/"));
 
 			return targetString;

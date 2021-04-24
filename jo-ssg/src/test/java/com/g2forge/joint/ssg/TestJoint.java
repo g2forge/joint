@@ -5,10 +5,12 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.file.CopyOption;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -18,11 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import com.g2forge.alexandria.command.invocation.CommandInvocation;
+import com.g2forge.alexandria.command.invocation.CommandInvocation.CommandInvocationBuilder;
+import com.g2forge.alexandria.command.invocation.runner.IdentityCommandRunner;
 import com.g2forge.alexandria.java.close.ICloseable;
 import com.g2forge.alexandria.java.close.ICloseableSupplier;
 import com.g2forge.alexandria.java.concurrent.HConcurrent;
@@ -33,15 +39,30 @@ import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.function.IFunction1;
 import com.g2forge.alexandria.java.io.HIO;
 import com.g2forge.alexandria.java.io.file.CopyWalker;
+import com.g2forge.alexandria.java.io.file.CopyWalker.ExtendedCopyOption;
 import com.g2forge.alexandria.java.io.file.TempDirectory;
 import com.g2forge.alexandria.java.io.file.compare.CompareWalker;
 import com.g2forge.alexandria.java.io.file.compare.IFileCompareGroup;
 import com.g2forge.alexandria.java.io.file.compare.IFileCompareGroupFunction;
 import com.g2forge.alexandria.java.io.file.compare.SHA1HashFileCompareGroupFunction;
 import com.g2forge.alexandria.java.io.file.compare.TextHashFileCompareGroupFunction;
+import com.g2forge.alexandria.java.platform.HPlatform;
+import com.g2forge.alexandria.java.platform.PathSpec;
 import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
 import com.g2forge.alexandria.test.HAssert;
+import com.g2forge.gearbox.command.converter.IMethodArgument;
+import com.g2forge.gearbox.command.converter.dumb.ArgumentRenderer;
+import com.g2forge.gearbox.command.converter.dumb.DumbCommandConverter;
+import com.g2forge.gearbox.command.converter.dumb.IArgumentRenderer;
+import com.g2forge.gearbox.command.converter.dumb.Named;
+import com.g2forge.gearbox.command.converter.dumb.ToStringArgumentRenderer;
+import com.g2forge.gearbox.command.converter.dumb.Working;
+import com.g2forge.gearbox.command.process.ProcessBuilderRunner;
+import com.g2forge.gearbox.command.process.redirect.IRedirect;
+import com.g2forge.gearbox.command.proxy.CommandProxyFactory;
+import com.g2forge.gearbox.command.proxy.ICommandProxyFactory;
+import com.g2forge.gearbox.command.proxy.process.ModifyProcessInvocationException;
 import com.g2forge.gearbox.image.ImageCluster;
 import com.g2forge.gearbox.image.PHashImageComparator;
 import com.g2forge.gearbox.image.PHashImageComparator.CharacterizedImage;
@@ -57,7 +78,7 @@ public class TestJoint {
 
 	protected static final PHashImageComparator COMPARATOR = new PHashImageComparator(16);
 
-	protected static final IFunction1<Path, IFileCompareGroupFunction<?>> HASHFUNCTIONFUNCTION = path -> {
+	protected static final IFunction1<Path, IFileCompareGroupFunction<?>> GROUPFUNCTIONFUNCTION = path -> {
 		final IMediaType mediaType = ExtendedMediaType.getRegistry().computeMediaType(path);
 
 		// If the media type is a PNG (probably from PlantUML) then just hash the image data, not the metadata
@@ -102,7 +123,7 @@ public class TestJoint {
 
 	protected void compareBuild(final Path input, final Path expected, final Path actual) throws Exception {
 		HAssert.assertEquals(Integer.valueOf(0), createJoint(input, actual, Operation.Build).call());
-		CompareWalker.builder().root(actual).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(expected);
+		CompareWalker.builder().root(actual).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(expected);
 	}
 
 	@Test
@@ -133,6 +154,60 @@ public class TestJoint {
 		test();
 	}
 
+	public interface IJoint {
+		public class ComponentsArgumentRenderer implements IArgumentRenderer<Set<Joint.Component>> {
+			@Override
+			public List<String> render(IMethodArgument<Set<Joint.Component>> argument) {
+				return HCollection.asList("--components", argument.get().stream().map(Object::toString).collect(Collectors.joining(",")));
+			}
+		}
+
+		public default Stream<String> joint(@Working Path pwd, Path input, Path output, @Named(value = "--operation", joined = false) @ArgumentRenderer(ToStringArgumentRenderer.class) Operation operation, @ArgumentRenderer(ComponentsArgumentRenderer.class) Set<Joint.Component> components) {
+			throw new ModifyProcessInvocationException(processInvocation -> {
+				final CommandInvocation<IRedirect, IRedirect> inputCommand = processInvocation.getCommandInvocation();
+				final CommandInvocationBuilder<IRedirect, IRedirect> commandBuilder = inputCommand.toBuilder();
+				commandBuilder.clearArguments();
+
+				final PathSpec pathSpec = HPlatform.getPlatform().getPathSpec();
+
+				// Add the java executable
+				commandBuilder.argument(System.getProperty("java.home") + pathSpec.getFileSeparator() + "bin" + pathSpec.getFileSeparator() + "java");
+				// Uncomment to enable debugging of the child process
+				//commandBuilder.argument("-Xdebug");
+				//commandBuilder.argument("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9000");
+				// Add the classpath
+				commandBuilder.argument("-cp").argument(System.getProperty("java.class.path"));
+
+				// Add the joint class
+				commandBuilder.argument(Joint.class.getName());
+				// Add the joint arguments
+				commandBuilder.arguments(inputCommand.getArguments().subList(1, inputCommand.getArguments().size()));
+
+				return processInvocation.toBuilder().commandInvocation(commandBuilder.build()).build();
+			});
+		}
+	}
+
+	/**
+	 * Ensure everything works with relative paths.
+	 */
+	@Test
+	public void relative() throws Exception {
+		try (final TempDirectory temp = new TempDirectory();
+			final ICloseableSupplier<Path> sourcePath = new Resource(getClass(), "rewrite").getPath();) {
+			final Path input = temp.get().resolve("input"), output = temp.get().resolve("output");
+			Files.createDirectories(input);
+			Files.createDirectories(output);
+			CopyWalker.builder().options(p -> new CopyOption[] { ExtendedCopyOption.SKIP_EXISTING }).target(input).build().walkFileTree(sourcePath.get().resolve("input"));
+
+			final ICommandProxyFactory commandProxyFactory = new CommandProxyFactory(DumbCommandConverter.create(), new ProcessBuilderRunner(IdentityCommandRunner.create()));
+			final IJoint joint = commandProxyFactory.apply(IJoint.class);
+			joint.joint(input, Paths.get("."), input.relativize(output), Operation.Build, HCollection.asSet(Joint.Component.StaticContent)).forEach(System.out::println);
+
+			CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(sourcePath.get().resolve("output"));
+		}
+	}
+
 	@Test
 	public void serve() throws Exception {
 		try (final TempDirectory temp = new TempDirectory();
@@ -144,17 +219,17 @@ public class TestJoint {
 
 			try (final ICloseable closeable = createJoint(input, output, Operation.Serve).start()) {
 				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(source);
+				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(source);
 
 				// Test that new files get copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).append("Text").close();
 				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(input);
+				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input);
 
 				// Test that modified files get re-copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.APPEND, StandardOpenOption.WRITE).append("Other").close();
 				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(HASHFUNCTIONFUNCTION).build().walkFileTree(input);
+				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input);
 			}
 		}
 	}
