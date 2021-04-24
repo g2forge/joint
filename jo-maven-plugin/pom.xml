@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>com.g2forge.joint</groupId>
 		<artifactId>jo-project</artifactId>
-		<version>0.0.2-SNAPSHOT</version>
+		<version>0.0.2</version>
 		<relativePath>../jo-project/pom.xml</relativePath>
 	</parent>
 
@@ -92,4 +92,8 @@
 			</build>
 		</profile>
 	</profiles>
+
+  <scm>
+    <tag>0.0.2</tag>
+  </scm>
 </project>
