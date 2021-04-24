@@ -45,5 +45,11 @@
 			<version>${habitat.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.g2forge.alexandria</groupId>
+			<artifactId>ax-filesystem-memory</artifactId>
+			<version>${alexandria.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>
