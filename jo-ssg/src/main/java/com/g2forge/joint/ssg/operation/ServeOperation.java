@@ -41,10 +41,13 @@ public class ServeOperation implements IOperation {
 					}
 				}
 			}
-		}, throwable -> log.error("Exception while handling changes", throwable), true, operationInstance.getInputs());
+		}, throwable -> log.error("Exception while handling changes", throwable), true, false, operationInstance.getInputs());
 		scanner.open();
 		return () -> {
-			HIO.closeAll(scanner, operationInstance);
+			HIO.closeAll(() -> {
+				scanner.close();
+				scanner.waitClosed();
+			}, operationInstance);
 		};
 	}
 
