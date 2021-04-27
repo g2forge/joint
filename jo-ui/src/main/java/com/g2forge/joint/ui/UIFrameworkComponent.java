@@ -1,6 +1,11 @@
 package com.g2forge.joint.ui;
 
+import java.io.IOException;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
 
 import com.g2forge.alexandria.adt.associative.map.MapBuilder;
@@ -13,6 +18,7 @@ import com.g2forge.alexandria.java.io.dataaccess.ResourceDataSource;
 import com.g2forge.joint.core.IComponent;
 import com.g2forge.joint.core.IConversion;
 import com.g2forge.joint.core.copy.CopyComponent;
+import com.g2forge.joint.core.copy.CopyConversionType;
 import com.g2forge.joint.core.copy.CreateDirectoryConversionType;
 
 import lombok.AccessLevel;
@@ -56,13 +62,25 @@ public class UIFrameworkComponent implements IComponent, ICloseable {
 		final Path input = getInput().get();
 		final Path output = getOutput();
 		CopyComponent.map(input, output, null, entry -> {
-			final Path path = entry.getPath();
 			// Don't copy the root directory
 			if (entry.isRoot()) return CopyComponent.Operation.builder().conversionType(CreateDirectoryConversionType.create()).build();
 
 			// Rewrite the pom.xml to be more portable
-			final Path filename = path.getFileName();
-			if ((filename != null) && filename.equals(path.getFileSystem().getPath("pom.xml"))) return CopyComponent.Operation.builder().conversionType(new XSLConversionType(new ResourceDataSource(new Resource(getClass(), "pom-transform.xsl")), new MapBuilder<String, Object>().put("name", getName()).build())).build();
+			if (CopyComponent.Entry.Type.File.equals(entry.getType())) {
+				final Path relative = entry.getRelative();
+				if (relative.equals(relative.getFileSystem().getPath("pom.xml"))) return CopyComponent.Operation.builder().conversionType(new XSLConversionType(new ResourceDataSource(new Resource(getClass(), "pom-transform.xsl")), new MapBuilder<String, Object>().put("name", getName()).build())).build();
+				if (relative.equals(relative.getFileSystem().getPath("src/assets/.gitignore"))) return CopyComponent.Operation.createIgnore();
+				if (relative.equals(relative.getFileSystem().getPath("mvnw"))) return CopyComponent.Operation.builder().conversionType(new CopyConversionType() {
+					@Override
+					protected void copy(Path input, Path output, final CopyOption[] options) throws IOException {
+						super.copy(input, output, options);
+						if (Files.isRegularFile(output)) {
+							final PosixFileAttributeView attributes = Files.getFileAttributeView(output, PosixFileAttributeView.class);
+							if (attributes != null) attributes.setPermissions(HCollection.union(attributes.readAttributes().permissions(), HCollection.asSet(PosixFilePermission.OWNER_EXECUTE)));
+						}
+					}
+				}).build();
+			}
 
 			return CopyComponent.Operation.builder().build();
 		}, consumer);

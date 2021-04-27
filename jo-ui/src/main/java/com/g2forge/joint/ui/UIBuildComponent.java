@@ -35,6 +35,7 @@ import com.g2forge.joint.core.IConversion;
 import com.g2forge.joint.core.IConversionContext;
 import com.g2forge.joint.core.copy.CopyConversionType;
 import com.g2forge.joint.core.copy.FileConversion;
+import com.g2forge.joint.core.copy.IFileConversionType;
 
 import lombok.Builder;
 import lombok.Data;
@@ -98,12 +99,30 @@ public class UIBuildComponent implements IComponent {
 		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
 	}
 
+	public static class NonServeFileConversion extends FileConversion {
+		protected NonServeFileConversion(Path inputRoot, Path inputRelative, Path outputRoot, IFileConversionType type) {
+			super(inputRoot, inputRelative, outputRoot, type);
+		}
+
+		@Override
+		public void invoke(IConversionContext context) {
+			switch (context.getMode()) {
+				case ServeBuild:
+				case ServeRebuild:
+					// Don't bother building the 404 handlers when we're in serve mode, since the server doesn't use them *anyway*
+					return;
+				default:
+			}
+			super.invoke(context);
+		}
+	}
+
 	public enum NotFoundHandler {
 		CopyIndex {
 			@Override
 			protected void map(UIBuildComponent component, IConsumer1<? super IConversion> consumer) {
 				final Path output = component.getOutput();
-				if (output != null) consumer.accept(new FileConversion(output, Paths.get("index.html"), output, new CopyConversionType() {
+				if (output != null) consumer.accept(new NonServeFileConversion(output, Paths.get("index.html"), output, new CopyConversionType() {
 					@Override
 					public Path computeOutputRelative(FileConversion conversion) {
 						return Paths.get("404.html");
@@ -118,7 +137,7 @@ public class UIBuildComponent implements IComponent {
 				final ICloseableSupplier<Path> input = new Resource(enumClass, name() + enumClass.getSimpleName() + ".xml").getPath();
 				try {
 					final Path output = component.getOutput().resolve("web.config");
-					consumer.accept(new CloseableConversion(new FileConversion(input.get(), null, output, STConversionType.builder().startDelimiter('$').endDelimiter('$').property("base-href", component.getBaseHref()).build()), input));
+					consumer.accept(new CloseableConversion(new NonServeFileConversion(input.get(), null, output, STConversionType.builder().startDelimiter('$').endDelimiter('$').property("base-href", component.getBaseHref()).build()), input));
 				} catch (Throwable throwable) {
 					input.close();
 					throw throwable;
