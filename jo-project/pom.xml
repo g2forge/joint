@@ -5,7 +5,7 @@
 	<groupId>com.g2forge.joint</groupId>
 	<artifactId>jo-project</artifactId>
 	<packaging>pom</packaging>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.3</version>
 
 	<parent>
 		<groupId>com.g2forge.enigma</groupId>
@@ -45,7 +45,8 @@
 		<connection>scm:git:git://github.com/${joint.organization}/${joint.repository}.git</connection>
 		<developerConnection>scm:git:ssh://github.com:${joint.organization}/${joint.repository}.git</developerConnection>
 		<url>http://github.com/${joint.organization}/${joint.repository}/tree/${project.version}</url>
-	</scm>
+	  <tag>0.0.3</tag>
+  </scm>
 
 	<build>
 		<plugins>
