@@ -68,8 +68,10 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			final boolean isAbsolute = inputPath.startsWith("/");
 			final Path inputParent = input.getParent();
 			final Path targetInput = isAbsolute ? conversion.getInputRoot().resolve(inputPath.substring(1)) : inputParent.resolve(inputPath);
-			if (!isAbsolute && !targetInput.toAbsolutePath().normalize().startsWith(conversion.getInputRoot().toAbsolutePath().normalize())) {
-				throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot()));
+			{
+				final Path actual = targetInput.toAbsolutePath().normalize();
+				final Path expectedBase = conversion.getInputRoot().toAbsolutePath().normalize();
+				if (!actual.startsWith(expectedBase)) { throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot())); }
 			}
 
 			// Figure out the conversion that uses that input
@@ -80,7 +82,7 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			// Get the path to that output relative to the parent of the target of this conversion
 			final Path targetRelative = (isAbsolute ? conversion.getOutputRoot() : output.getParent()).relativize(targetOutput);
 			final String targetPath = (isAbsolute ? "/" : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining("/"));
-			
+
 			final StringBuilder target = new StringBuilder();
 			final boolean hasQuery = uri.getQuery() != null, hasFragment = uri.getFragment() != null;
 			if (!".".equals(targetPath) || (!hasQuery && !hasFragment)) target.append(targetPath);

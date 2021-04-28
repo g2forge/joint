@@ -38,6 +38,22 @@ public class TestMD2HTMLConversionType {
 	public final TestName name = new TestName();
 
 	@Test
+	public void escapeAbsolute() throws IOException {
+		try {
+			testLink("/../BadLink.html", "/../BadLink.md");
+		} catch (Throwable throwable) {
+			while (true) {
+				final Throwable cause = throwable.getCause();
+				if (cause == null) break;
+				throwable = cause;
+			}
+			HAssert.assertInstanceOf(IllegalArgumentException.class, throwable);
+			return;
+		}
+		HAssert.fail("Exception should have been thrown");
+	}
+
+	@Test
 	public void escapeNone() throws IOException {
 		testLink("File Name.html", "File Name.md");
 	}
@@ -50,6 +66,22 @@ public class TestMD2HTMLConversionType {
 	@Test
 	public void escapePlus() throws IOException {
 		testLink("File Name.html", "File+Name.md");
+	}
+
+	@Test
+	public void escapeRelative() throws IOException {
+		try {
+			testLink("../../../../BadLink.md", "../../../../BadLink.md");
+		} catch (Throwable throwable) {
+			while (true) {
+				final Throwable cause = throwable.getCause();
+				if (cause == null) break;
+				throwable = cause;
+			}
+			HAssert.assertInstanceOf(IllegalArgumentException.class, throwable);
+			return;
+		}
+		HAssert.fail("Exception should have been thrown");
 	}
 
 	@Test
