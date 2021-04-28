@@ -52,7 +52,14 @@ public class FlexmarkConverter implements IMDConverter {
 			@NotNull
 			@Override
 			public ResolvedLink resolveLink(@NotNull Node node, @NotNull LinkResolverBasicContext context, @NotNull ResolvedLink link) {
-				return link.withUrl(getRewrite().apply(link.getUrl()));
+				final String original = link.getUrl();
+				final String rewritten;
+				try {
+					rewritten = getRewrite().apply(original);
+				} catch (Throwable throwable) {
+					throw new RuntimeException(String.format("Failed to rewrite link \"%1$s\"", original), throwable);
+				}
+				return link.withUrl(rewritten);
 			}
 		}
 
