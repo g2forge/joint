@@ -1,7 +1,9 @@
 package com.g2forge.joint.md;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -14,10 +16,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.g2forge.alexandria.java.close.ICloseableSupplier;
 import com.g2forge.alexandria.java.core.helpers.HCollection;
-import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.io.Filename;
+import com.g2forge.alexandria.java.io.HBinaryIO;
 import com.g2forge.alexandria.java.io.HTextIO;
 import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
@@ -37,18 +38,134 @@ public class TestMD2HTMLConversionType {
 	public final TestName name = new TestName();
 
 	@Test
-	public void test() throws IOException {
-		final String inputFilename = "ConversionType.md", outputFilename = "ConversionType.html";
+	public void escapeAbsolute() throws IOException {
+		try {
+			testLink("/../BadLink.html", "/../BadLink.md");
+		} catch (Throwable throwable) {
+			while (true) {
+				final Throwable cause = throwable.getCause();
+				if (cause == null) break;
+				throwable = cause;
+			}
+			HAssert.assertInstanceOf(IllegalArgumentException.class, throwable);
+			return;
+		}
+		HAssert.fail("Exception should have been thrown");
+	}
+
+	@Test
+	public void escapeNone() throws IOException {
+		testLink("File Name.html", "File Name.md");
+	}
+
+	@Test
+	public void escapePercent() throws IOException {
+		testLink("File Name.html", "File%20Name.md");
+	}
+
+	@Test
+	public void escapePlus() throws IOException {
+		testLink("File Name.html", "File+Name.md");
+	}
+
+	@Test
+	public void escapeRelative() throws IOException {
+		try {
+			testLink("../../../../BadLink.md", "../../../../BadLink.md");
+		} catch (Throwable throwable) {
+			while (true) {
+				final Throwable cause = throwable.getCause();
+				if (cause == null) break;
+				throwable = cause;
+			}
+			HAssert.assertInstanceOf(IllegalArgumentException.class, throwable);
+			return;
+		}
+		HAssert.fail("Exception should have been thrown");
+	}
+
+	@Test
+	public void image() throws IOException {
+		test("<p><img src=\"image.png\" alt=\"converted\" /></p>", "![converted](image.puml)");
+	}
+
+	@Test
+	public void nestedDirectory() throws IOException {
+		testLink("./Nested/Other.html", "./Nested/Other.md");
+	}
+
+	@Test
+	public void nestedFilename() throws IOException {
+		testLink("Nested/Other.html", "Nested/Other.md");
+	}
+
+	@Test
+	public void otherDirectory() throws IOException {
+		testLink("./Other.html", "./Other.md");
+	}
+
+	@Test
+	public void otherFilename() throws IOException {
+		testLink("Other.html", "Other.md");
+	}
+
+	@Test
+	public void parent() throws IOException {
+		testLink("../Other.html", "../Other.md");
+	}
+
+	@Test
+	public void root() throws IOException {
+		testLink("/Other.html", "/Other.md");
+	}
+
+	@Test
+	public void selfDirectory() throws IOException {
+		testLink("./File.html", "./File.md");
+	}
+
+	@Test
+	public void selfFilename() throws IOException {
+		testLink("File.html", "File.md");
+	}
+
+	@Test
+	public void sibling() throws IOException {
+		testLink("../Directory/Other.html", "../Directory/Other.md");
+	}
+
+	@Test
+	public void suffixBoth() throws IOException {
+		testLink("?a=b#fragment", "?a=b#fragment");
+	}
+
+	@Test
+	public void suffixFragmentOnly() throws IOException {
+		testLink("#fragment", "#fragment");
+	}
+
+	@Test
+	public void suffixQueryOnly() throws IOException {
+		testLink("?a=b", "?a=b");
+	}
+
+	protected void test(String expectedHTML, String markdownInput) throws IOException {
+		final String inputFilename = "File.md", outputFilename = "File.html";
 		final Path directory = Paths.get("A/B");
 
 		try (final FileSystem fs = FileSystems.newFileSystem(URI.create("memory:" + getClass().getSimpleName() + "_" + getName().getMethodName()), null);
-			final ICloseableSupplier<Path> inputResource = new Resource(getClass(), inputFilename).getPath()) {
+		/*final ICloseableSupplier<Path> inputResource = new Resource(getClass(), inputFilename).getPath()*/) {
 
 			final Path inputRoot = fs.getPath("/input"), inputRelative = directory.resolve(inputFilename);
 			final Path outputRoot = fs.getPath("/output");
 			Files.createDirectories(inputRoot.resolve(directory));
 			Files.createDirectories(outputRoot.resolve(directory));
-			Files.copy(inputResource.get(), inputRoot.resolve(inputRelative));
+
+			// Write out the input markdown
+			try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(markdownInput.getBytes());
+				final OutputStream outputStream = Files.newOutputStream(inputRoot.resolve(inputRelative))) {
+				HBinaryIO.copy(inputStream, outputStream);
+			}
 
 			new FileConversion(inputRoot, inputRelative, outputRoot, new MD2HTMLConversionType(new FlexmarkConverter())).invoke(new IConversionContext() {
 				@Override
@@ -67,7 +184,7 @@ public class TestMD2HTMLConversionType {
 							else if (inputMediaType == ExtendedMediaType.PlantUML) outputMediaType = MediaType.PNG;
 							else outputMediaType = inputMediaType;
 
-							final Path output = Filename.replaceLastExtension(relative, outputMediaType.getFileExtensions().getDefaultExtension());
+							final Path output = (outputMediaType == null) ? relative : Filename.replaceLastExtension(relative, outputMediaType.getFileExtensions().getDefaultExtension());
 							return HCollection.asSet(outputRoot.resolve(output));
 						}
 
@@ -90,8 +207,12 @@ public class TestMD2HTMLConversionType {
 			});
 
 			try (final InputStream stream = Files.newInputStream(outputRoot.resolve(directory).resolve(outputFilename))) {
-				HAssert.assertEquals(new Resource(getClass(), outputFilename), HTextIO.readAll(stream, true));
+				HAssert.assertEquals(expectedHTML.trim(), HTextIO.readAll(stream, true).trim());
 			}
 		}
+	}
+
+	protected void testLink(String expectedHTMLLink, String markdownInputLink) throws IOException {
+		test("<p><a href=\"" + expectedHTMLLink + "\">Text</a></p>", "[Text](" + markdownInputLink + ")");
 	}
 }

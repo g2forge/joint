@@ -2,7 +2,7 @@ import { Component, OnInit, ElementRef, ViewEncapsulation } from '@angular/core'
 
 import { Location } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, NavigationExtras } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -107,7 +107,10 @@ export class WikiComponent implements OnInit {
                 a.onclick = () => {
                     var href = a.getAttribute( "href" );
                     if ( ( href == null ) || this.hasScheme( href ) ) return true;
-                    this.router.navigate( [href], { relativeTo: this.route.parent } );
+                    var extras: NavigationExtras = { relativeTo: this.route.parent };
+                    var split: string[] = href.split('#');
+                    if (split.length > 1) extras.fragment = split[1];
+                    this.router.navigate( [split[0]], extras );
                     return false;
                 };
             }

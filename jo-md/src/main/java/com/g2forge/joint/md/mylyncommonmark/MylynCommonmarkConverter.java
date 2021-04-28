@@ -19,12 +19,17 @@ public class MylynCommonmarkConverter implements IMDConverter {
 	@Override
 	public void convert(IDataSource source, IDataSink sink, IFunction1<? super String, ? extends String> rewriteURLs) {
 		final MarkupParser parser = new MarkupParser(new CommonMarkLanguage());
-		try (final Reader reader = source.getReader(ITypeRef.of(Reader.class)); final Writer writer = sink.getWriter(ITypeRef.of(Writer.class))) {
+		try (final Reader reader = source.getReader(ITypeRef.of(Reader.class));
+			final Writer writer = sink.getWriter(ITypeRef.of(Writer.class))) {
 			final HtmlDocumentBuilder builder = new HtmlDocumentBuilder(writer, true) {
 				@Override
 				protected String makeUrlAbsolute(String url) {
-					if (rewriteURLs != null) return rewriteURLs.apply(url);
-					return super.makeUrlAbsolute(url);
+					try {
+						if (rewriteURLs != null) return rewriteURLs.apply(url);
+						return super.makeUrlAbsolute(url);
+					} catch (Throwable throwable) {
+						throw new RuntimeException(String.format("Failed to rewrite link \"%1$s\"", url), throwable);
+					}
 				}
 			};
 			builder.setEmitAsDocument(false);

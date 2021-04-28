@@ -51,25 +51,27 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			// Don't translate URIs with schemes
 			if (PATTERN_URI.matcher(string).matches()) return string;
 
-			// Don't rewrite "absolute" URIs, those are URIs with a scheme and all that, we're only here for the paths...
-			{
+			final URI uri;
+			final String inputPath;
+			{ // Don't rewrite "absolute" URIs, those are URIs with a scheme and all that, we're only here for the paths...
 				final String escaped = PATH_ESCAPER.escape(string);
-				final URI uri;
 				try {
 					uri = new URI(escaped);
 					if (uri.isAbsolute() || uri.isOpaque() || (uri.getAuthority() != null)) return string;
 				} catch (URISyntaxException e) {
 					throw new RuntimeException(String.format("Failed to translate \"%1$s\" (escaped as \"%2$s\")", string, escaped), e);
 				}
+				inputPath = PATH_ESCAPER.unescape(uri.getPath());
 			}
 
 			// Figure out the link target input path and normalize it
-			final String inputPath = PATH_ESCAPER.unescape(string);
 			final boolean isAbsolute = inputPath.startsWith("/");
 			final Path inputParent = input.getParent();
 			final Path targetInput = isAbsolute ? conversion.getInputRoot().resolve(inputPath.substring(1)) : inputParent.resolve(inputPath);
-			if (!isAbsolute && !targetInput.toAbsolutePath().normalize().startsWith(conversion.getInputRoot().toAbsolutePath().normalize())) {
-				throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot()));
+			{
+				final Path actual = targetInput.toAbsolutePath().normalize();
+				final Path expectedBase = conversion.getInputRoot().toAbsolutePath().normalize();
+				if (!actual.startsWith(expectedBase)) { throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, conversion.getInputRoot())); }
 			}
 
 			// Figure out the conversion that uses that input
@@ -79,9 +81,15 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			final Path targetOutput = HCollection.getOne(HCollection.getOne(conversions).getOutputs());
 			// Get the path to that output relative to the parent of the target of this conversion
 			final Path targetRelative = (isAbsolute ? conversion.getOutputRoot() : output.getParent()).relativize(targetOutput);
-			final String targetString = (isAbsolute ? "/" : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining("/"));
+			final String targetPath = (isAbsolute ? "/" : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining("/"));
 
-			return targetString;
+			final StringBuilder target = new StringBuilder();
+			final boolean hasQuery = uri.getQuery() != null, hasFragment = uri.getFragment() != null;
+			if (!".".equals(targetPath) || (!hasQuery && !hasFragment)) target.append(targetPath);
+			if (hasQuery) target.append('?').append(uri.getQuery());
+			if (hasFragment) target.append('#').append(uri.getFragment());
+
+			return target.toString();
 		}
 	}
 
