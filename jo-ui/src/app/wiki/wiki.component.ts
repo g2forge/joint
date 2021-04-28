@@ -107,9 +107,9 @@ export class WikiComponent implements OnInit {
                 a.onclick = () => {
                     var href = a.getAttribute( "href" );
                     if ( ( href == null ) || this.hasScheme( href ) ) return true;
-					var extras: NavigationExtras = { relativeTo: this.route.parent };
-					var split: string[] = href.split('#');
-					if (split.length > 1) extras.fragment = split[1];
+                    var extras: NavigationExtras = { relativeTo: this.route.parent };
+                    var split: string[] = href.split('#');
+                    if (split.length > 1) extras.fragment = split[1];
                     this.router.navigate( [split[0]], extras );
                     return false;
                 };
