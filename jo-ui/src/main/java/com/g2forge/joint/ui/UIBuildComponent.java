@@ -66,15 +66,17 @@ public class UIBuildComponent implements IComponent {
 			final Path node = getWorking().resolve("node");
 			if (isInitialize() && !Files.isDirectory(node.resolve("initialized"))) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), "initialize", HCollection.asList("ui-build")).forEach(log::info);
 			final Path npm = node.resolve("npm");
+			final IAngular angular = getFactory().apply(IAngular.class);
 			switch (context.getMode()) {
 				default:
 					if (getOutput() == null) throw new NullPointerException();
 					final String baseHref = getBaseHref();
 					if ((baseHref != null) && (!baseHref.startsWith("/") || !baseHref.endsWith("/"))) log.warn("Angular Base HREF should probably start and end with a \"/\", but is \"{}\"!", baseHref);
-					getFactory().apply(IAngular.class).build(getWorking(), node, npm, getOutput(), baseHref).forEach(log::info);
+					angular.build(getWorking(), node, npm, getOutput(), baseHref).forEach(log::info);
+					angular.postbuild(getWorking(), node, npm).forEach(log::info);
 					break;
 				case ServeBuild:
-					context.register(new StreamConsumer(getFactory().apply(IAngular.class).serve(getWorking(), node, npm), log::info).open());
+					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm), log::info).open());
 					break;
 				case ServeRebuild:
 					break;
@@ -97,6 +99,9 @@ public class UIBuildComponent implements IComponent {
 
 		@Command({})
 		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
+
+		@Command({})
+		public Stream<String> postbuild(@Working Path working, @EnvPath Path node, @Constant({ "run", "postbuild" }) Path npm);
 	}
 
 	public static class NonServeFileConversion extends FileConversion {

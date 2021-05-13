@@ -71,6 +71,11 @@ public class IntegrationJoint {
 							}
 
 							@Override
+							public Stream<String> postbuild(Path working, Path node, Path npm) {
+								return Stream.of("Postbuild output");
+							}
+
+							@Override
 							public Stream<String> serve(Path working, Path node, Path npm) {
 								HAssert.fail();
 								throw new UnreachableCodeError();

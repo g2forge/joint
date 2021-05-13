@@ -5,6 +5,7 @@
 		"ng": "ng",
 		"serve": "ng serve",
 		"resources": "mkdirp dist/input && (git ls-files -mc -z | xargs -0r -n1 -I\"{}\" cp --parents \"{}\" dist/input/) && cp -r ../.mvn dist/input/ && cp -r ../mvnw* dist/input/",
+		"postbuild": "mkdirp dist/maps && mv dist/output/*.map dist/maps",
 		"init": "mkdirp node/initialized",
 		"build": "ng build",
 		"test": "ng test",
