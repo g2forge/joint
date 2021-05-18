@@ -1,5 +1,7 @@
 package com.g2forge.joint.ui;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,9 +12,13 @@ import java.util.stream.Stream;
 
 import com.g2forge.alexandria.java.close.ICloseableSupplier;
 import com.g2forge.alexandria.java.core.enums.HEnum;
+import com.g2forge.alexandria.java.core.helpers.HBinary;
 import com.g2forge.alexandria.java.core.helpers.HCollection;
 import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.function.IConsumer1;
+import com.g2forge.alexandria.java.io.HIO;
+import com.g2forge.alexandria.java.io.HTextIO;
+import com.g2forge.alexandria.java.io.RuntimeIOException;
 import com.g2forge.gearbox.command.converter.IMethodArgument;
 import com.g2forge.gearbox.command.converter.dumb.ArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Command;
@@ -64,7 +70,20 @@ public class UIBuildComponent implements IComponent {
 		@Override
 		public void invoke(IConversionContext context) {
 			final Path node = getWorking().resolve("node");
-			if (isInitialize() && !Files.isDirectory(node.resolve("initialized"))) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), "initialize", HCollection.asList("ui-build")).forEach(log::info);
+			if (isInitialize()) {
+				final Path init = node.resolve("init");
+				boolean initialize = !Files.isRegularFile(init);
+				if (!initialize) {
+					final String actual = HBinary.toHex(HIO.sha1(getWorking().resolve("package.json"), Files::newInputStream)).trim().toUpperCase(), expected;
+					try (final InputStream stream = Files.newInputStream(init)) {
+						expected = HCollection.getFirst(HTextIO.readAll(stream)).trim().toUpperCase();
+					} catch (IOException exception) {
+						throw new RuntimeIOException(exception);
+					}
+					initialize = !actual.equals(expected);
+				}
+				if (initialize) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), "initialize", HCollection.asList("ui-build")).forEach(log::info);
+			}
 			final Path npm = node.resolve("npm");
 			final IAngular angular = getFactory().apply(IAngular.class);
 			switch (context.getMode()) {
@@ -73,7 +92,10 @@ public class UIBuildComponent implements IComponent {
 					final String baseHref = getBaseHref();
 					if ((baseHref != null) && (!baseHref.startsWith("/") || !baseHref.endsWith("/"))) log.warn("Angular Base HREF should probably start and end with a \"/\", but is \"{}\"!", baseHref);
 					angular.build(getWorking(), node, npm, getOutput(), baseHref).forEach(log::info);
-					angular.postbuild(getWorking(), node, npm).forEach(log::info);
+
+					// Note that we move the maps if maps are DISABLED, hence the ! in the condition
+					if (!maps) angular.maps(getWorking(), node, npm, getOutput()).forEach(log::info);
+
 					break;
 				case ServeBuild:
 					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm), log::info).open());
@@ -101,7 +123,7 @@ public class UIBuildComponent implements IComponent {
 		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
 
 		@Command({})
-		public Stream<String> postbuild(@Working Path working, @EnvPath Path node, @Constant({ "run", "postbuild" }) Path npm);
+		public Stream<String> maps(@Working Path working, @EnvPath Path node, @Constant({ "run", "maps" }) Path npm, Path output);
 	}
 
 	public static class NonServeFileConversion extends FileConversion {
@@ -163,6 +185,8 @@ public class UIBuildComponent implements IComponent {
 	protected final Path output;
 
 	protected final boolean initialize;
+
+	protected final boolean maps;
 
 	@Builder.Default
 	protected final String baseHref = null;

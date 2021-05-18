@@ -71,8 +71,8 @@ public class IntegrationJoint {
 							}
 
 							@Override
-							public Stream<String> postbuild(Path working, Path node, Path npm) {
-								return Stream.of("Postbuild output");
+							public Stream<String> maps(Path working, Path node, Path npm, Path output) {
+								return Stream.of("Maps output");
 							}
 
 							@Override
