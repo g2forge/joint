@@ -68,6 +68,10 @@ public class Joint extends AJointCommand {
 	@Builder.Default
 	protected EnumSet<UIBuildComponent.NotFoundHandler> notFoundHandlers = EnumSet.noneOf(UIBuildComponent.NotFoundHandler.class);
 
+	@Option(names = { "--maps" }, description = "Enable source maps during production builds (default: false)")
+	@Builder.Default
+	protected boolean maps = false;
+
 	@Builder.Default
 	protected ICommandProxyFactory commandProxyFactory = new CommandProxyFactory(DumbCommandConverter.create(), new ProcessBuilderRunner());
 
@@ -78,7 +82,7 @@ public class Joint extends AJointCommand {
 		final ConfigurationBuilder retVal = Configuration.builder();
 		if (isUI) retVal.component(new UIFrameworkComponent(getName(), working));
 		if (getComponents().contains(Component.StaticContent)) retVal.component(new StaticContentComponent(getInput(), isUI ? working.resolve("src/assets") : getOutput(), working));
-		if (isUI) retVal.component(new UIBuildComponent(commandProxyFactory, working, getOutput(), true, getBaseHref(), getNotFoundHandlers()));
+		if (isUI) retVal.component(new UIBuildComponent(commandProxyFactory, working, getOutput(), true, isMaps(), getBaseHref(), getNotFoundHandlers()));
 		if (getComponents().contains(Component.GHCodeOwners)) retVal.component(new GHCodeOwnersComponent(getInput()));
 		return retVal.build();
 	}

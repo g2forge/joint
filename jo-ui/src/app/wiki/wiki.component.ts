@@ -86,12 +86,16 @@ export class WikiComponent implements OnInit {
 				})
 			).subscribe(response => {
 				if (response != null) {
-					console.log(response);
-					console.log(response.headers.get("Content-Type"));
-
 					var contentType = response.headers.get("Content-Type");
-					if ((response.body != null) && ((contentType == null) || (contentType.match(/^text\/html;.*$/i) != null))) this.setContent(response.body.toString());
-					else window.location.replace(this.location.prepareExternalUrl(this.getContentPath(path)));
+					console.log("Content type: " + contentType);
+					if ((response.body != null) && ((contentType == null) || (contentType.match(/^text\/html(;.*)?$/i) != null))) {
+						console.log("Displaying HTML content inline");
+						this.setContent(response.body.toString());
+					} else {
+						var redirect: string = this.location.prepareExternalUrl(this.getContentPath(path));
+						console.log("Redirecting to static content: " + redirect);
+						window.location.replace(redirect);
+					}
 				}
 			});
 		}

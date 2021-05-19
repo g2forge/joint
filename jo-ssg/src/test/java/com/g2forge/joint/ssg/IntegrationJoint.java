@@ -71,6 +71,11 @@ public class IntegrationJoint {
 							}
 
 							@Override
+							public Stream<String> maps(Path working, Path node, Path npm, Path output) {
+								return Stream.of("Maps output");
+							}
+
+							@Override
 							public Stream<String> serve(Path working, Path node, Path npm) {
 								HAssert.fail();
 								throw new UnreachableCodeError();

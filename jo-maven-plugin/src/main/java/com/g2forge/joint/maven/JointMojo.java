@@ -39,6 +39,9 @@ public class JointMojo extends AbstractMojo {
 	@Parameter(property = "joint.404", required = false, defaultValue = "")
 	String notFoundHandlers;
 
+	@Parameter(property = "joint.maps", required = false, defaultValue = "false")
+	boolean maps;
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		final Path base = project.getBasedir().toPath();
@@ -47,12 +50,14 @@ public class JointMojo extends AbstractMojo {
 		builder.input(input == null ? base : base.resolve(input));
 		builder.output(output == null ? base.resolve(DEFAULT_OUTPUT) : base.resolve(output));
 
+		//  Passin the parameters
 		if (operation != null) builder.operation(Operation.valueOf(operation));
 		if (baseHref != null) builder.baseHref(baseHref);
-
 		if (notFoundHandlers != null) builder.notFoundHandlers(Stream.of(notFoundHandlers.split(",")).map(String::trim).map(UIBuildComponent.NotFoundHandler::valueOf).collect(Collectors.toCollection(() -> EnumSet.noneOf(UIBuildComponent.NotFoundHandler.class))));
 		else builder.notFoundHandlers(EnumSet.allOf(UIBuildComponent.NotFoundHandler.class));
+		builder.maps(maps);
 
+		// Run joint
 		final Joint joint = builder.build();
 		try {
 			joint.call();

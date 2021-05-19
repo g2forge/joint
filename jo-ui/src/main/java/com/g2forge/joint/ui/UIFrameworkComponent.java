@@ -72,7 +72,7 @@ public class UIFrameworkComponent implements IComponent, ICloseable {
 				final Path relative = entry.getRelative();
 				if (relative.equals(relative.getFileSystem().getPath("pom.xml"))) return CopyComponent.Operation.builder().conversionType(new XSLConversionType(new ResourceDataSource(new Resource(getClass(), "pom-transform.xsl")), new MapBuilder<String, Object>().put("name", getName()).build())).build();
 				if (relative.equals(relative.getFileSystem().getPath("src/assets/.gitignore"))) return CopyComponent.Operation.createIgnore();
-				if (relative.equals(relative.getFileSystem().getPath("mvnw")) || relative.equals(relative.getFileSystem().getPath("mvnw.cmd"))) return CopyComponent.Operation.builder().conversionType(new CopyConversionType() {
+				if (relative.equals(relative.getFileSystem().getPath("mvnw")) || relative.equals(relative.getFileSystem().getPath("mvnw.cmd")) || relative.getName(0).equals(relative.getFileSystem().getPath("scripts"))) return CopyComponent.Operation.builder().conversionType(new CopyConversionType() {
 					@Override
 					protected void copy(Path input, Path output, final CopyOption[] options) throws IOException {
 						try (final BufferedReader reader = Files.newBufferedReader(input);
