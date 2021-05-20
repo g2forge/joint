@@ -28,6 +28,33 @@ class PathComponent {
 		return this.actual == 'index.html';
 	}
 }
+class Path {
+	public components: PathComponent[];
+
+	public constructor(path: string) {
+		// Store the display path component
+		this.components = path.split('/').filter(component => component != "").map(component => new PathComponent(component));
+		// Remove any ".html" suffix from the page for a prettier display
+		if (this.components.length > 0) {
+			let last = this.components[this.components.length - 1];
+			last.display = last.isIndex() ? "" : last.display.replace(/\.html$/, "");
+		}
+	}
+
+	public getLast(): PathComponent {
+		if (this.components.length <= 0) return new PathComponent("");
+		return this.components[this.components.length - 1];
+	}
+
+	/**
+	 * Create a router link to the relevant parent of this content.
+	 * @param end The index (exclusive) of the last part of the path to include in this link.
+	 */
+	public getPathLink(end: number): string {
+		if (end < 0) end = this.components.length + end + 1;
+		return '/wiki/' + this.components.slice(0, end).map(component => component.actual).join("/");
+	}
+}
 
 @Component({
 	selector: 'app-wiki',
@@ -39,7 +66,7 @@ export class WikiComponent implements OnInit {
 	// Actual HTML content to display
 	content: string = "";
 	// The path within the wiki
-	path: PathComponent[] = [];
+	path: Path | null = null;
 	// The fragment to scroll to
 	fragment: string | null = null;
 
@@ -69,18 +96,12 @@ export class WikiComponent implements OnInit {
 	 */
 	load(path: string): void {
 		if (path !== null && path !== undefined) {
-			// Store the display path component
-			this.path = path.split('/').filter(component => component != "").map(component => new PathComponent(component));
-			// Remove any ".html" suffix from the page for a prettier display
-			if (this.path.length > 0) {
-				let last = this.path[this.path.length - 1];
-				last.display = last.isIndex() ? "" : last.display.replace(/\.html$/, "");
-			}
+			this.path = new Path(path);
 
 			// HTTP GET the content
 			this.http.get(this.getContentPath(path), { responseType: 'text', observe: 'response' }).pipe(
 				catchError((error: HttpErrorResponse) => {
-					this.setContent("<h1>Page not found</h1>\n<p><span>" + this.getPathLink(this.path.length - 1) + "</span> could not be found!</p>");
+					this.setContent("<h1>Page not found</h1>\n<p><span>" + this.path?.getPathLink(-1) + "</span> could not be found!</p>");
 					console.log(error);
 					return of(null);
 				})
@@ -140,6 +161,11 @@ export class WikiComponent implements OnInit {
 		});
 	}
 
+	getPath(): Path {
+		if (this.path == null) throw new Error("No path");
+		return this.path;
+	}
+
 	rewriteElement(element: HTMLElement, attribute: string): string | null {
 		var uri = element.getAttribute(attribute);
 		// Don't modify URLs (which have a scheme like HTTP), only URIs
@@ -147,9 +173,11 @@ export class WikiComponent implements OnInit {
 
 		var absolute = uri.startsWith("/");
 		if (!absolute) {
+			var path: Path = this.getPath();
+
 			// Get a link to the "current" directory (remove the HTML file name if there is one)
-			var lastIsFile = this.path.length > 0 ? this.path[this.path.length - 1].isHTML() : false;
-			var directoryPathLink = this.getPathLink(this.path.length - (lastIsFile ? 2 : 1));
+			var lastIsFile = path.getLast().isHTML();
+			var directoryPathLink = path.getPathLink(-(lastIsFile ? 2 : 1));
 			// Construct an absolute path by concatenating the current directory before the target URI
 			return directoryPathLink + (directoryPathLink.endsWith("/") ? "" : "/") + uri;
 		}
@@ -168,14 +196,6 @@ export class WikiComponent implements OnInit {
 			const element = document.getElementById(this.fragment);
 			if (element != null) element.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
 		}
-	}
-
-	/**
-	 * Create a router link to the relevant parent of this content.
-	 * @param endInclusive The index (inclusive) of the last part of the path to include in this link.
-	 */
-	getPathLink(endInclusive: number) {
-		return '/wiki/' + this.path.slice(0, endInclusive + 1).map(component => component.actual).join("/");
 	}
 
 	/**
