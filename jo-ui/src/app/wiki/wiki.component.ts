@@ -157,7 +157,9 @@ export class WikiComponent implements OnInit {
 		images.forEach(img => {
 			var updated = this.rewriteElement(img, "src");
 			var asset = (updated != null) ? updated : img.getAttribute('src');
-			img.setAttribute("src", this.location.prepareExternalUrl('/assets' + asset));
+			if (asset == null) throw new Error("Null asset src");
+			var rewritten = asset.startsWith("/assets") ? asset : ('/assets' + asset);
+			img.setAttribute("src", this.location.prepareExternalUrl(rewritten));
 		});
 	}
 
