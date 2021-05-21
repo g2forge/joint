@@ -1,5 +1,5 @@
 <app-toolbar>
-	<span app-toolbar-path><span *ngFor="let component of path; let componentIndex = index;"><span *ngIf="component.display != ''"> &gt; <a [routerLink]="getPathLink(componentIndex)">{{ component.display }}</a></span></span></span>
+	<span app-toolbar-path><span *ngFor="let component of getPath().components; let componentIndex = index;"><span *ngIf="component.display != ''"> &gt; <a [routerLink]="getPath().getPathLink(componentIndex + 1)">{{ component.display }}</a></span></span></span>
 </app-toolbar>
 
 <div class="content wiki-content" [innerHTML]="content | safeHtml"></div>
