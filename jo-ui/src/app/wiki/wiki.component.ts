@@ -156,10 +156,10 @@ export class WikiComponent implements OnInit {
 		var images: HTMLElement[] = this.element.nativeElement.querySelectorAll(".wiki-content img");
 		images.forEach(img => {
 			var updated = this.rewriteElement(img, "src");
-			var asset = (updated != null) ? updated : img.getAttribute('src');
-			if (asset == null) throw new Error("Null asset src");
-			var rewritten = asset.startsWith("/assets") ? asset : ('/assets' + asset);
-			img.setAttribute("src", this.location.prepareExternalUrl(rewritten));
+			if (updated != null) {
+				var rewritten = updated.startsWith("/assets") ? updated : ('/assets' + updated);
+				img.setAttribute("src", this.location.prepareExternalUrl(rewritten));
+			}
 		});
 	}
 
