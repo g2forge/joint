@@ -38,7 +38,7 @@ public abstract class ATestMDConverter {
 	protected void test() {
 		final String name = getName().getMethodName();
 		final ByteArrayDataSink actual = new ByteArrayDataSink();
-		getConverter().convert(new ResourceDataSource(new Resource(HTrace.getMethod(1).getDeclaringClass(), name + ".md")), actual, null);
+		getConverter().convert(new ResourceDataSource(new Resource(HTrace.getExecutable(1).getDeclaringClass(), name + ".md")), actual, null);
 		HAssert.assertEquals(new Resource(getClass(), name + ".html"), actual.getStream().toString());
 	}
 }
