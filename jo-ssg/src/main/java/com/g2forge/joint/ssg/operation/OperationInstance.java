@@ -38,23 +38,25 @@ public class OperationInstance implements ICloseable {
 
 			if (component instanceof AutoCloseable) closeable((AutoCloseable) component);
 			component.map(conversion -> {
-				final ConversionInstance conversionContext = new ConversionInstance(component, conversion);
+				final ConversionInstance conversionInstance = new ConversionInstance(component, conversion);
 
-				if (conversionsByInput$key == null) conversionsByInput$key = new ArrayList<>();
-				if (conversionsByInput$value == null) conversionsByInput$value = new ArrayList<>();
-
-				boolean changed = false;
-				for (Path input : conversion.getInputs()) {
-					int index = conversionsByInput$key.indexOf(input);
-					if (index < 0) {
-						index = conversionsByInput$value.size();
-						conversionsByInput$key.add(input);
-						conversionsByInput$value.add(new HashSet<>());
+				if (conversion.getInputs().isEmpty()) {
+					conversionsWithoutInput(conversionInstance);
+					conversion(conversionInstance);
+				} else {
+					if (conversionsByInput$key == null) conversionsByInput$key = new ArrayList<>();
+					if (conversionsByInput$value == null) conversionsByInput$value = new ArrayList<>();
+					boolean changed = false;
+					for (Path input : conversion.getInputs()) {
+						int index = conversionsByInput$key.indexOf(input);
+						if (index < 0) {
+							index = conversionsByInput$value.size();
+							conversionsByInput$key.add(input);
+							conversionsByInput$value.add(new HashSet<>());
+						}
+						changed |= conversionsByInput$value.get(index).add(conversionInstance);
 					}
-					changed |= conversionsByInput$value.get(index).add(conversionContext);
-				}
-				if (changed || conversion.getInputs().isEmpty()) {
-					conversion(conversionContext);
+					if (changed) conversion(conversionInstance);
 				}
 			});
 
@@ -74,10 +76,16 @@ public class OperationInstance implements ICloseable {
 	protected final Set<Path> inputs;
 
 	/**
-	 * Map from input files and directories to the conversion contexts that use them.
+	 * Map from input files and directories to the conversion instances that use them.
 	 */
 	@Singular("conversionByInput")
 	protected final Map<Path, Set<ConversionInstance>> conversionsByInput;
+
+	/**
+	 * The set of conversions instances which depend on no inputs (e.g. the ones to build once at the start)
+	 */
+	@Singular("conversionsWithoutInput")
+	protected final Set<ConversionInstance> conversionsWithoutInput;
 
 	@Singular
 	protected final Set<ConversionInstance> conversions;
