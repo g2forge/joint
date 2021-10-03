@@ -64,7 +64,7 @@ public class UIFrameworkComponent implements IComponent, ICloseable {
 		final Path input = getInput().get();
 		final Path output = getOutput();
 		CopyComponent.map(input, output, null, entry -> {
-			// Don't copy the root directory
+			// Don't copy the root directory, create it
 			if (entry.isRoot()) return CopyComponent.Operation.builder().conversionType(CreateDirectoryConversionType.create()).build();
 
 			// Rewrite the pom.xml to be more portable

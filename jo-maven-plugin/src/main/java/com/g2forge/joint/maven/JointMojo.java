@@ -50,7 +50,7 @@ public class JointMojo extends AbstractMojo {
 		builder.input(input == null ? base : base.resolve(input));
 		builder.output(output == null ? base.resolve(DEFAULT_OUTPUT) : base.resolve(output));
 
-		//  Passin the parameters
+		//  Pass in the parameters
 		if (operation != null) builder.operation(Operation.valueOf(operation));
 		if (baseHref != null) builder.baseHref(baseHref);
 		if (notFoundHandlers != null) builder.notFoundHandlers(Stream.of(notFoundHandlers.split(",")).map(String::trim).map(UIBuildComponent.NotFoundHandler::valueOf).collect(Collectors.toCollection(() -> EnumSet.noneOf(UIBuildComponent.NotFoundHandler.class))));

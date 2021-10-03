@@ -55,6 +55,9 @@ public class ServeOperation implements IOperation {
 	public ICloseable invoke(Configuration configuration) {
 		// Create the operation instance, and close it ONLY ON FAILURE (otherwise the caller will close it through our return value)
 		final OperationInstance operationInstance = OperationInstance.builder().configuration(configuration).build();
+		for (ConversionInstance conversion : operationInstance.getConversionsWithoutInput()) {
+			conversion.invoke(operationInstance, IConversionContext.Mode.Build);
+		}
 		try {
 			return startScanning(configuration, operationInstance);
 		} catch (Throwable throwable) {
