@@ -91,7 +91,7 @@ public class TestMD2HTMLConversionType {
 
 	@Test
 	public void nestedDirectory() throws IOException {
-		testLink("./Nested/Other.html", "./Nested/Other.md");
+		testLink("Nested/Other.html", "./Nested/Other.md");
 	}
 
 	@Test
@@ -101,7 +101,7 @@ public class TestMD2HTMLConversionType {
 
 	@Test
 	public void otherDirectory() throws IOException {
-		testLink("./Other.html", "./Other.md");
+		testLink("Other.html", "./Other.md");
 	}
 
 	@Test
@@ -121,7 +121,7 @@ public class TestMD2HTMLConversionType {
 
 	@Test
 	public void selfDirectory() throws IOException {
-		testLink("./File.html", "./File.md");
+		testLink("File.html", "./File.md");
 	}
 
 	@Test
