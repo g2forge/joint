@@ -75,7 +75,7 @@ public class MD2HTMLConversionType implements IFileConversionType {
 			}
 
 			// Figure out the conversion that uses that input
-			final Set<IConversion> conversions = context.getConversions(targetInput);
+			final Set<IConversion> conversions = context.getConversions(targetInput.normalize());
 			if ((conversions == null) || conversions.isEmpty()) return string;
 			// Get the output of that conversion
 			final Path targetOutput = HCollection.getOne(HCollection.getOne(conversions).getOutputs());

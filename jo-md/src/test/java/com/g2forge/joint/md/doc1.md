@@ -32,7 +32,12 @@ echo "This is a bash script in a document!"
 
 ## Links
 
-[Links](#links) are really helpful.
+* [Links](#links) are really helpful.
+* [Sub Directory](subdirectory)
+* [File in Sub Directory](subdirectory/File.md).
+* [Absolute](/doc1.md)
+* [Relative](./doc1.md)
+* [File](doc1.md)
 
 ## Images
 

@@ -51,7 +51,7 @@ public class OperationInstance implements ICloseable {
 						int index = conversionsByInput$key.indexOf(input);
 						if (index < 0) {
 							index = conversionsByInput$value.size();
-							conversionsByInput$key.add(input);
+							conversionsByInput$key.add(input.normalize());
 							conversionsByInput$value.add(new HashSet<>());
 						}
 						changed |= conversionsByInput$value.get(index).add(conversionInstance);
