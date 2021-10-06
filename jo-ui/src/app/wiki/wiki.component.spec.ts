@@ -41,4 +41,18 @@ describe('WikiComponent', () => {
 	it('should recognize non-scheme urls', () => {
 		expect(component.hasScheme("dir/file.html")).toBeFalse();
 	});
+	
+	it('shouldn\'t rewrite uris with schemes', () => {
+		expect(component.rewriteURI("https://example.com/", false)).toBeNull();
+	});
+	
+	it('shouldn\'t rewrite some URIs', () => {
+		expect(component.rewriteURI("/absolute", false)).toBe("/absolute");
+		expect(component.rewriteURI("/", false)).toBe("/");
+		expect(component.rewriteURI("relative", false)).toBe("relative");
+	});
+	
+	it('should rewrite URI to absolute', () => {
+		expect(component.rewriteURI("relative", true)).toBe("/relative");
+	});
 });
