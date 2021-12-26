@@ -53,6 +53,6 @@ describe('WikiComponent', () => {
 	});
 	
 	it('should rewrite URI to absolute', () => {
-		expect(component.rewriteURI("relative", true)).toBe("/relative");
+		expect(component.rewriteURI("relative", true)).toBe("/wiki/relative");
 	});
 });

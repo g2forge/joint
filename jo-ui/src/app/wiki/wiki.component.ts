@@ -52,6 +52,7 @@ class Path {
 	 */
 	public getPathLink(end: number): string {
 		if (end < 0) end = this.components.length + end + 1;
+		if (this.components.length < 1) return '/wiki';
 		return '/wiki/' + this.components.slice(0, end).map(component => component.actual).join("/");
 	}
 }
@@ -148,7 +149,7 @@ export class WikiComponent implements OnInit {
 
 					// Routes are relative to the page directory, but if we're currently displaying a directory (e.g. an index.html) then this *IS* the page directory
 					var base = this.getPath().getLast().isHTML() ? this.route.parent : this.route;
-					
+
 					var extras: NavigationExtras = { relativeTo: base };
 					var split: string[] = href.split('#');
 					if (split.length > 1) extras.fragment = split[1];
