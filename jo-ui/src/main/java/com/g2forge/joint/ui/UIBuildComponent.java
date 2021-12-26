@@ -82,7 +82,7 @@ public class UIBuildComponent implements IComponent {
 					}
 					initialize = !actual.equals(expected);
 				}
-				if (initialize) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), "initialize", HCollection.asList("ui-build")).forEach(log::info);
+				if (initialize) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), true, "initialize", HCollection.asList("ui-build")).forEach(log::info);
 			}
 			final Path npm = node.resolve("npm");
 			final IAngular angular = getFactory().apply(IAngular.class);
