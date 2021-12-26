@@ -43,19 +43,19 @@ public class IntegrationJoint {
 					if (IMaven.class.equals(type)) {
 						final IMaven maven = new IMaven() {
 							@Override
-							public IProcess dependencyCopy(Path path, MavenCoordinates artifact, Path outputDirectory) {
+							public IProcess dependencyCopy(Path path, boolean batch, MavenCoordinates artifact, Path outputDirectory) {
 								HAssert.fail();
 								throw new UnreachableCodeError();
 							}
 
 							@Override
-							public Stream<String> effectivePOM(Path path, Path output) {
+							public Stream<String> effectivePOM(Path path, boolean batch, Path output) {
 								HAssert.fail();
 								throw new UnreachableCodeError();
 							}
 
 							@Override
-							public Stream<String> maven(Path path, Path maven, String goal, List<String> profiles) {
+							public Stream<String> maven(Path path, Path maven, boolean batch, String goal, List<String> profiles) {
 								return Stream.of("Maven output");
 							}
 						};
