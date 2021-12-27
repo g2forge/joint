@@ -14,7 +14,7 @@
 	</parent>
 
 	<properties>
-		<alexandria.version>0.0.18-SNAPSHOT</alexandria.version>
+		<alexandria.version>0.0.19-SNAPSHOT</alexandria.version>
 		<enigma.version>0.0.12-SNAPSHOT</enigma.version>
 		<gearbox.version>0.0.10-SNAPSHOT</gearbox.version>
 		<habitat.version>0.0.6-SNAPSHOT</habitat.version>
