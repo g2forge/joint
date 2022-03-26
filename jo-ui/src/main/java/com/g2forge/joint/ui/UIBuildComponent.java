@@ -98,7 +98,7 @@ public class UIBuildComponent implements IComponent {
 
 					break;
 				case ServeBuild:
-					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm), log::info).open());
+					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm), log::info).open().asCloseableWithWait());
 					break;
 				case ServeRebuild:
 					break;
@@ -120,10 +120,10 @@ public class UIBuildComponent implements IComponent {
 		public Stream<String> build(@Working Path working, @EnvPath Path node, @Constant({ "run", "build", "--", "--prod" }) Path npm, @Named(value = "--output-path", joined = false) Path output, @Named(value = "--base-href", joined = false) @ArgumentRenderer(NonNullArgumentRenderer.class) String baseHref);
 
 		@Command({})
-		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
+		public Stream<String> maps(@Working Path working, @EnvPath Path node, @Constant({ "run", "maps" }) Path npm, Path output);
 
 		@Command({})
-		public Stream<String> maps(@Working Path working, @EnvPath Path node, @Constant({ "run", "maps" }) Path npm, Path output);
+		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
 	}
 
 	public static class NonServeFileConversion extends FileConversion {

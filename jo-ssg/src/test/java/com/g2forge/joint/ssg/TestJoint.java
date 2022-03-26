@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -31,7 +32,6 @@ import com.g2forge.alexandria.command.invocation.CommandInvocation.CommandInvoca
 import com.g2forge.alexandria.command.invocation.runner.IdentityCommandRunner;
 import com.g2forge.alexandria.java.close.ICloseable;
 import com.g2forge.alexandria.java.close.ICloseableSupplier;
-import com.g2forge.alexandria.java.concurrent.HConcurrent;
 import com.g2forge.alexandria.java.core.helpers.HBinary;
 import com.g2forge.alexandria.java.core.helpers.HCollection;
 import com.g2forge.alexandria.java.core.helpers.HCollector;
@@ -48,6 +48,7 @@ import com.g2forge.alexandria.java.io.file.compare.SHA1HashFileCompareGroupFunct
 import com.g2forge.alexandria.java.io.file.compare.TextHashFileCompareGroupFunction;
 import com.g2forge.alexandria.java.platform.HPlatform;
 import com.g2forge.alexandria.java.platform.PathSpec;
+import com.g2forge.alexandria.java.retry.Retry;
 import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
 import com.g2forge.alexandria.test.HAssert;
@@ -74,6 +75,40 @@ import lombok.Getter;
 import net.sourceforge.plantuml.security.ImageIO;
 
 public class TestJoint {
+	public interface IJoint {
+		public class ComponentsArgumentRenderer implements IArgumentRenderer<Set<Joint.Component>> {
+			@Override
+			public List<String> render(IMethodArgument<Set<Joint.Component>> argument) {
+				return HCollection.asList("--components", argument.get().stream().map(Object::toString).collect(Collectors.joining(",")));
+			}
+		}
+
+		public default Stream<String> joint(@Working Path pwd, Path input, Path output, @Named(value = "--operation", joined = false) @ArgumentRenderer(ToStringArgumentRenderer.class) Operation operation, @ArgumentRenderer(ComponentsArgumentRenderer.class) Set<Joint.Component> components) {
+			throw new ModifyProcessInvocationException(processInvocation -> {
+				final CommandInvocation<IRedirect, IRedirect> inputCommand = processInvocation.getCommandInvocation();
+				final CommandInvocationBuilder<IRedirect, IRedirect> commandBuilder = inputCommand.toBuilder();
+				commandBuilder.clearArguments();
+
+				final PathSpec pathSpec = HPlatform.getPlatform().getPathSpec();
+
+				// Add the java executable
+				commandBuilder.argument(System.getProperty("java.home") + pathSpec.getFileSeparator() + "bin" + pathSpec.getFileSeparator() + "java");
+				// Uncomment to enable debugging of the child process
+				//commandBuilder.argument("-Xdebug");
+				//commandBuilder.argument("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9000");
+				// Add the classpath
+				commandBuilder.argument("-cp").argument(System.getProperty("java.class.path"));
+
+				// Add the joint class
+				commandBuilder.argument(Joint.class.getName());
+				// Add the joint arguments
+				commandBuilder.arguments(inputCommand.getArguments().subList(1, inputCommand.getArguments().size()));
+
+				return processInvocation.toBuilder().commandInvocation(commandBuilder.build()).build();
+			});
+		}
+	}
+
 	protected static final int COMPARATOR_GROUPDISTANCE = 50;
 
 	protected static final PHashImageComparator COMPARATOR = new PHashImageComparator(16);
@@ -149,45 +184,6 @@ public class TestJoint {
 		test();
 	}
 
-	@Test
-	public void rewrite() throws Exception {
-		test();
-	}
-
-	public interface IJoint {
-		public class ComponentsArgumentRenderer implements IArgumentRenderer<Set<Joint.Component>> {
-			@Override
-			public List<String> render(IMethodArgument<Set<Joint.Component>> argument) {
-				return HCollection.asList("--components", argument.get().stream().map(Object::toString).collect(Collectors.joining(",")));
-			}
-		}
-
-		public default Stream<String> joint(@Working Path pwd, Path input, Path output, @Named(value = "--operation", joined = false) @ArgumentRenderer(ToStringArgumentRenderer.class) Operation operation, @ArgumentRenderer(ComponentsArgumentRenderer.class) Set<Joint.Component> components) {
-			throw new ModifyProcessInvocationException(processInvocation -> {
-				final CommandInvocation<IRedirect, IRedirect> inputCommand = processInvocation.getCommandInvocation();
-				final CommandInvocationBuilder<IRedirect, IRedirect> commandBuilder = inputCommand.toBuilder();
-				commandBuilder.clearArguments();
-
-				final PathSpec pathSpec = HPlatform.getPlatform().getPathSpec();
-
-				// Add the java executable
-				commandBuilder.argument(System.getProperty("java.home") + pathSpec.getFileSeparator() + "bin" + pathSpec.getFileSeparator() + "java");
-				// Uncomment to enable debugging of the child process
-				//commandBuilder.argument("-Xdebug");
-				//commandBuilder.argument("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9000");
-				// Add the classpath
-				commandBuilder.argument("-cp").argument(System.getProperty("java.class.path"));
-
-				// Add the joint class
-				commandBuilder.argument(Joint.class.getName());
-				// Add the joint arguments
-				commandBuilder.arguments(inputCommand.getArguments().subList(1, inputCommand.getArguments().size()));
-
-				return processInvocation.toBuilder().commandInvocation(commandBuilder.build()).build();
-			});
-		}
-	}
-
 	/**
 	 * Ensure everything works with relative paths.
 	 */
@@ -209,6 +205,11 @@ public class TestJoint {
 	}
 
 	@Test
+	public void rewrite() throws Exception {
+		test();
+	}
+
+	@Test
 	public void serve() throws Exception {
 		try (final TempDirectory temp = new TempDirectory();
 			final ICloseableSupplier<Path> sourcePath = new Resource(getClass(), "copy").getPath();) {
@@ -216,20 +217,20 @@ public class TestJoint {
 			Files.createDirectories(output);
 			final Path source = sourcePath.get();
 			CopyWalker.builder().target(input).build().walkFileTree(source);
+			CompareWalker.builder().root(input).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(source);
 
 			try (final ICloseable closeable = createJoint(input, output, Operation.Serve).start()) {
-				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(source);
+				new Retry(Duration.ofMillis(1000), Duration.ofMillis(50), () -> CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(source)).run();
 
 				// Test that new files get copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).append("Text").close();
-				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input);
+				new Retry(Duration.ofMillis(500), Duration.ofMillis(50), () -> CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input)).run();
 
 				// Test that modified files get re-copied correctly
 				Files.newBufferedWriter(input.resolve("dir1/text.txt"), StandardOpenOption.APPEND, StandardOpenOption.WRITE).append("Other").close();
-				HConcurrent.wait(500);
-				CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input);
+				new Retry(Duration.ofMillis(500), Duration.ofMillis(50), () -> CompareWalker.builder().root(output).groupFunctionFunction(GROUPFUNCTIONFUNCTION).build().walkFileTree(input)).run();
+			} catch (Throwable t) {
+				throw t;
 			}
 		}
 	}
