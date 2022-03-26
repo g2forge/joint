@@ -1,41 +1,59 @@
 package com.g2forge.joint.md;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.g2forge.alexandria.java.core.helpers.HCollection;
+import com.g2forge.alexandria.java.function.IFunction1;
 import com.g2forge.alexandria.java.io.Filename;
-import com.g2forge.alexandria.java.io.HBinaryIO;
-import com.g2forge.alexandria.java.io.HTextIO;
 import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
 import com.g2forge.alexandria.test.HAssert;
 import com.g2forge.joint.core.ExtendedMediaType;
-import com.g2forge.joint.core.IConversion;
-import com.g2forge.joint.core.IConversionContext;
-import com.g2forge.joint.core.copy.FileConversion;
-import com.g2forge.joint.md.flexmark.FlexmarkConverter;
 
 import lombok.AccessLevel;
 import lombok.Getter;
 
 public class TestMD2HTMLConversionType {
+	@Getter(lazy = true)
+	private static final IFunction1<Path, Path> conversion = path -> {
+		final IMediaType inputMediaType = ExtendedMediaType.getRegistry().computeMediaType(path), outputMediaType;
+		if (inputMediaType == MediaType.Markdown) outputMediaType = MediaType.HTML;
+		else if (inputMediaType == ExtendedMediaType.PlantUML) outputMediaType = MediaType.PNG;
+		else outputMediaType = inputMediaType;
+		return (outputMediaType == null) ? path : Filename.replaceLastExtension(path, outputMediaType.getFileExtensions().getDefaultExtension());
+	};
+
 	@Rule
 	@Getter(AccessLevel.PROTECTED)
 	public final TestName name = new TestName();
+
+	@Test
+	public void conversionDocument() throws IOException {
+		testLink("link.html", "link.md");
+	}
+
+	@Test
+	public void conversionImage() throws IOException {
+		testLink("image.png", "image.puml");
+	}
+
+	@Test
+	public void conversionNoExtension() throws IOException {
+		testLink("child", "child");
+	}
+
+	@Test
+	public void conversionNone() throws IOException {
+		testLink("link.html", "link.html");
+	}
 
 	@Test
 	public void escapeAbsolute() throws IOException {
@@ -85,53 +103,38 @@ public class TestMD2HTMLConversionType {
 	}
 
 	@Test
-	public void image() throws IOException {
-		test("<p><img src=\"image.png\" alt=\"converted\" /></p>", "![converted](image.puml)");
+	public void relativeDirFile() throws IOException {
+		testLink("directory/File.html", "directory/File.md");
 	}
 
 	@Test
-	public void nestedDirectory() throws IOException {
-		testLink("Nested/Other.html", "./Nested/Other.md");
-	}
-
-	@Test
-	public void nestedFilename() throws IOException {
-		testLink("Nested/Other.html", "Nested/Other.md");
-	}
-
-	@Test
-	public void otherDirectory() throws IOException {
-		testLink("Other.html", "./Other.md");
-	}
-
-	@Test
-	public void otherFilename() throws IOException {
-		testLink("Other.html", "Other.md");
-	}
-
-	@Test
-	public void parent() throws IOException {
-		testLink("../Other.html", "../Other.md");
-	}
-
-	@Test
-	public void root() throws IOException {
-		testLink("/Other.html", "/Other.md");
-	}
-
-	@Test
-	public void selfDirectory() throws IOException {
-		testLink("File.html", "./File.md");
-	}
-
-	@Test
-	public void selfFilename() throws IOException {
+	public void relativeFile() throws IOException {
 		testLink("File.html", "File.md");
 	}
 
 	@Test
-	public void sibling() throws IOException {
-		testLink("../Directory/Other.html", "../Directory/Other.md");
+	public void relativeParentDirFile() throws IOException {
+		testLink("../Directory/File.html", "../Directory/File.md");
+	}
+
+	@Test
+	public void relativeParentFile() throws IOException {
+		testLink("../Other.html", "../Other.md");
+	}
+
+	@Test
+	public void relativeSelfDirFile() throws IOException {
+		testLink("Directory/File.html", "./Directory/File.md");
+	}
+
+	@Test
+	public void relativeSelfFile() throws IOException {
+		testLink("File.html", "./File.md");
+	}
+
+	@Test
+	public void rootFile() throws IOException {
+		testLink("/File.html", "/File.md");
 	}
 
 	@Test
@@ -149,70 +152,27 @@ public class TestMD2HTMLConversionType {
 		testLink("?a=b", "?a=b");
 	}
 
-	protected void test(String expectedHTML, String markdownInput) throws IOException {
-		final String inputFilename = "File.md", outputFilename = "File.html";
-		final Path directory = Paths.get("A/B");
-
-		try (final FileSystem fs = FileSystems.newFileSystem(URI.create("memory:" + getClass().getSimpleName() + "_" + getName().getMethodName()), null);
-		/*final ICloseableSupplier<Path> inputResource = new Resource(getClass(), inputFilename).getPath()*/) {
-
-			final Path inputRoot = fs.getPath("/input"), inputRelative = directory.resolve(inputFilename);
+	protected void test(final String expectedLink, final IFunction1<Path, Path> conversion, final String inputRelative, final String outputRelative, final String inputLink) throws IOException {
+		try (final FileSystem fs = FileSystems.newFileSystem(URI.create("memory:" + getClass().getSimpleName() + "_" + getName().getMethodName()), null)) {
+			final Path inputRoot = fs.getPath("/input");
 			final Path outputRoot = fs.getPath("/output");
-			Files.createDirectories(inputRoot.resolve(directory));
-			Files.createDirectories(outputRoot.resolve(directory));
+			final Path input = inputRoot.resolve(inputRelative);
+			final Path output = outputRoot.resolve(outputRelative);
+			Files.createDirectories(input.getParent());
+			Files.createDirectories(output.getParent());
 
-			// Write out the input markdown
-			try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(markdownInput.getBytes());
-				final OutputStream outputStream = Files.newOutputStream(inputRoot.resolve(inputRelative))) {
-				HBinaryIO.copy(inputStream, outputStream);
-			}
-
-			new FileConversion(inputRoot, inputRelative, outputRoot, new MD2HTMLConversionType(new FlexmarkConverter())).invoke(new IConversionContext() {
-				@Override
-				public Set<IConversion> getConversions(Path input) {
-					return HCollection.asSet(new IConversion() {
-						@Override
-						public Set<Path> getInputs() {
-							return HCollection.asSet(input);
-						}
-
-						@Override
-						public Set<Path> getOutputs() {
-							final Path relative = inputRoot.relativize(input);
-							final IMediaType inputMediaType = ExtendedMediaType.getRegistry().computeMediaType(relative), outputMediaType;
-							if (inputMediaType == MediaType.Markdown) outputMediaType = MediaType.HTML;
-							else if (inputMediaType == ExtendedMediaType.PlantUML) outputMediaType = MediaType.PNG;
-							else outputMediaType = inputMediaType;
-
-							final Path output = (outputMediaType == null) ? relative : Filename.replaceLastExtension(relative, outputMediaType.getFileExtensions().getDefaultExtension());
-							return HCollection.asSet(outputRoot.resolve(output));
-						}
-
-						@Override
-						public void invoke(IConversionContext context) {
-							throw new UnsupportedOperationException();
-						}
-					});
-				}
-
-				@Override
-				public Mode getMode() {
-					return Mode.Build;
-				}
-
-				@Override
-				public void register(AutoCloseable closeable) {
-					throw new UnsupportedOperationException();
-				}
-			});
-
-			try (final InputStream stream = Files.newInputStream(outputRoot.resolve(directory).resolve(outputFilename))) {
-				HAssert.assertEquals(expectedHTML.trim(), HTextIO.readAll(stream, true).trim());
-			}
+			final MD2HTMLConversionType.Translator translator = new MD2HTMLConversionType.Translator(path -> {
+				Path toTranslate = path;
+				if (path.startsWith(inputRoot)) toTranslate = outputRoot.resolve(inputRoot.relativize(path));
+				return conversion.apply(toTranslate);
+			}, inputRoot, input, outputRoot, output);
+			final String actualLink = translator.apply(inputLink);
+			HAssert.assertEquals(expectedLink, actualLink);
 		}
 	}
 
-	protected void testLink(String expectedHTMLLink, String markdownInputLink) throws IOException {
-		test("<p><a href=\"" + expectedHTMLLink + "\">Text</a></p>", "[Text](" + markdownInputLink + ")");
+	protected void testLink(final String expected, final String input) throws IOException {
+		final String document = "d0/d1/document.html";
+		test(expected, getConversion(), document, document, input);
 	}
 }

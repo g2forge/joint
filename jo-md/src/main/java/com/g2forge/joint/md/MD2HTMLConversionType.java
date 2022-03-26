@@ -41,62 +41,80 @@ public class MD2HTMLConversionType implements IFileConversionType {
 
 		protected static final IEscaper PATH_ESCAPER = SequenceEscaper.builder().escape(" ", "+", true).escape("+", "%2B", true).build();
 
+		protected static final String PATH_SEPARATOR = "/";
+
+		protected static final String QUERY_SEPARATOR = "?";
+
+		protected static final String FRAGMENT_SEPARATOR = "#";
+
+		protected static final String PATH_SELF = ".";
+
 		/** A function from normalized input paths to the converted result, or {@code null} if the input path was not converted. */
 		protected final IFunction1<Path, Path> conversion;
 
 		/** The root directory containing all the input files. */
 		protected final Path inputRoot;
 
-		/** The input file the link we're translating comes from. */
+		/** The input file the link we're translating comes from. Should be an absolute path, not relative to the {@link #inputRoot}. */
 		protected final Path input;
 
 		/** The root directory to put output files in. */
 		protected final Path outputRoot;
 
-		/** The output file which is being generated from the input file. */
+		/** The output file which is being generated from the input file. Should be an absolute path, not relative to the {@link #outputRoot}. */
 		protected final Path output;
 
 		@Override
-		public String apply(String string) {
+		public String apply(String linkRaw) {
 			// Don't translate URIs with schemes
-			if (PATTERN_URI.matcher(string).matches()) return string;
+			if (PATTERN_URI.matcher(linkRaw).matches()) return linkRaw;
 
-			final URI uri;
-			final String inputPath;
+			final URI linkURI;
+			final String linkPath;
 			{ // Don't rewrite "absolute" URIs, those are URIs with a scheme and all that, we're only here for the paths...
-				final String escaped = PATH_ESCAPER.escape(string);
+				final String escaped = PATH_ESCAPER.escape(linkRaw);
 				try {
-					uri = new URI(escaped);
-					if (uri.isAbsolute() || uri.isOpaque() || (uri.getAuthority() != null)) return string;
+					linkURI = new URI(escaped);
+					if (linkURI.isAbsolute() || linkURI.isOpaque() || (linkURI.getAuthority() != null)) return linkRaw;
 				} catch (URISyntaxException e) {
-					throw new RuntimeException(String.format("Failed to translate \"%1$s\" (escaped as \"%2$s\")", string, escaped), e);
+					throw new RuntimeException(String.format("Failed to translate \"%1$s\" (escaped as \"%2$s\")", linkRaw, escaped), e);
 				}
-				inputPath = PATH_ESCAPER.unescape(uri.getPath());
+				linkPath = PATH_ESCAPER.unescape(linkURI.getPath());
 			}
 
 			// Figure out the link target input path and normalize it
-			final boolean isAbsolute = inputPath.startsWith("/");
-			final Path inputParent = getInput().getParent();
-			final Path targetInput = isAbsolute ? getInputRoot().resolve(inputPath.substring(1)) : inputParent.resolve(inputPath);
+			final boolean isAbsolute = linkPath.startsWith(PATH_SEPARATOR);
+			final Path targetInput;
 			{
-				final Path actual = targetInput.toAbsolutePath().normalize();
-				final Path expectedBase = getInputRoot().toAbsolutePath().normalize();
-				if (!actual.startsWith(expectedBase)) { throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", string, inputParent, getInputRoot())); }
+				final Path inputParent = getInput().getParent();
+				targetInput = isAbsolute ? getInputRoot().resolve(linkPath.substring(1)) : inputParent.resolve(linkPath);
+				{
+					final Path actual = targetInput.toAbsolutePath().normalize();
+					final Path expectedBase = getInputRoot().toAbsolutePath().normalize();
+					if (!actual.startsWith(expectedBase)) { throw new IllegalArgumentException(String.format("URI \"%1$s\" relative to \"%2$s\" escapes input root \"%3$S\", which is both incorrect and a potential security issue", linkRaw, inputParent, getInputRoot())); }
+				}
 			}
 
-			// Determine if that input was converted, and if not, don't translate the link
-			final Path targetOutput = conversion.apply(targetInput.normalize());
-			if (targetOutput == null) return string;
-			// Get the path to that output relative to the parent of the target of this conversion
-			final Path targetRelative = (isAbsolute ? getOutputRoot() : getOutput().getParent()).relativize(targetOutput);
-			final String targetPath = (isAbsolute ? "/" : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining("/"));
+			final String targetPath;
+			{ // Determine the target path, that is the path to the target
+				// Determine if that input was converted, and if not, don't translate the link
+				final Path targetOutput = conversion.apply(targetInput.normalize());
+				if (targetOutput == null) return linkRaw;
+				// Get the path to that output relative to the parent of the target of this conversion
+				final Path targetRelative = (isAbsolute ? getOutputRoot() : getOutput().getParent()).relativize(targetOutput);
+				targetPath = (isAbsolute ? PATH_SEPARATOR : "") + HCollection.toCollection(targetRelative).stream().map(Object::toString).collect(Collectors.joining(PATH_SEPARATOR));
+			}
+
+			return convertToTargetURI(linkURI, targetPath);
+		}
+
+		protected String convertToTargetURI(final URI uri, final String path) {
+			final boolean hasQuery = uri.getQuery() != null, hasFragment = uri.getFragment() != null;
 
 			final StringBuilder target = new StringBuilder();
-			final boolean hasQuery = uri.getQuery() != null, hasFragment = uri.getFragment() != null;
-			if (!".".equals(targetPath) || (!hasQuery && !hasFragment)) target.append(targetPath);
-			if (hasQuery) target.append('?').append(uri.getQuery());
-			if (hasFragment) target.append('#').append(uri.getFragment());
-
+			if (!PATH_SELF.equals(path) || (!hasQuery && !hasFragment)) target.append(path);
+			if (hasQuery) target.append(QUERY_SEPARATOR).append(uri.getQuery());
+			if (hasFragment) target.append(FRAGMENT_SEPARATOR).append(uri.getFragment());
 			return target.toString();
 		}
 	}
