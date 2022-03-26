@@ -1,5 +1,6 @@
 package com.g2forge.joint.ssg.operation;
 
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,10 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ServeOperation implements IOperation {
 	protected static ICloseable startScanning(Configuration configuration, OperationInstance operationInstance) {
 		final OperationInstance[] context = new OperationInstance[] { operationInstance };
+		@SuppressWarnings("resource" /* We do close it, but we do so through lambdas that IDEs can't yet understand */)
 		final FileScanner scanner = new FileScanner(event -> {
 			// Invoke the conversions with the correct mode based on the file scanner event
 			final Mode mode = event.isScan() ? IConversionContext.Mode.ServeBuild : IConversionContext.Mode.ServeRebuild;
-			final Set<ConversionInstance> conversions = event.getPaths().stream().map(context[0].getConversionsByInput()::get).filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toSet());
+			final Set<ConversionInstance> conversions = event.getPaths().stream().map(context[0].getConversionsByInput()::get).filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toCollection(LinkedHashSet::new));
 			for (ConversionInstance conversion : conversions) {
 				conversion.invoke(context[0], mode);
 			}
@@ -44,10 +46,7 @@ public class ServeOperation implements IOperation {
 		}, throwable -> log.error("Exception while handling changes", throwable), true, false, operationInstance.getInputs());
 		scanner.open();
 		return () -> {
-			HIO.closeAll(() -> {
-				scanner.close();
-				scanner.waitClosed();
-			}, operationInstance);
+			HIO.closeAll(scanner.asCloseableWithWait(), operationInstance);
 		};
 	}
 
