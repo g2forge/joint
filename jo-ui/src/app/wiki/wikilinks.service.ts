@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 
 export const WikiPathPrefix: string = "wiki";
 export const AssetsPathPrefix: string = "assets";
+export const RouterLinkAttribute: string = "router-link";
 
 class PathComponent {
     /** The user friendly rendering of this path component. */
@@ -25,16 +26,17 @@ class PathComponent {
 }
 
 export class WikiPath {
-    public components: PathComponent[];
+    public constructor( readonly components: PathComponent[] ) { }
 
-    public constructor( path: string ) {
+    static create( path: string ): WikiPath {
         // Store the display path component
-        this.components = path.split( '/' ).filter( component => component != "" ).map( component => new PathComponent( component ) );
+        var components: PathComponent[] = path.split( '/' ).filter( component => component != "" ).map( component => new PathComponent( component ) );
         // Remove any ".html" suffix from the page for a prettier display
-        if ( this.components.length > 0 ) {
-            let last = this.components[this.components.length - 1];
+        if ( components.length > 0 ) {
+            let last = components[components.length - 1];
             last.display = last.isIndex() ? "" : last.display.replace( /\.html$/, "" );
         }
+        return new WikiPath( components );
     }
 
     public getLast(): PathComponent {
@@ -43,13 +45,26 @@ export class WikiPath {
     }
 
     /**
-     * Create a router link to this path, or a subset thereof.
-     * @param end The index (exclusive) of the last part of the path to include in this link. Can be negative to specify removing a certain number of items (-1 removes 0 items, -2 removes 1 item, etc)
+     * Create a WikiPath to a parent of this one.
+     * @param end The index (exclusive) of the last part of the path to include in this returned path. Can be negative to specify removing a certain number of items (-1 removes 0 items, -2 removes 1 item, etc)
      */
-    public getPathLink( end: number ): string {
+    public getParent( end: number ): WikiPath {
         if ( end < 0 ) end = this.components.length + end + 1;
+        if ( end <= 0 ) return new WikiPath( [] );
+        return new WikiPath( this.components.slice( 0, end ) );
+    }
+
+    public toActual(): string {
         if ( this.components.length < 1 ) return "/" + WikiPathPrefix;
-        return "/" + WikiPathPrefix + '/' + this.components.slice( 0, end ).map( component => component.actual ).join( "/" );
+        return "/" + WikiPathPrefix + '/' + this.components.map( component => component.actual ).join( "/" );
+    }
+
+    public append( suffix: WikiPath ): WikiPath {
+        return new WikiPath( this.components.concat( suffix.components ) );
+    }
+
+    public resolve(): WikiPath {
+        return new WikiPath(this.components.filter(component => component.actual !== '.'));
     }
 }
 
@@ -81,9 +96,9 @@ export class WikiRewriteContext {
 
         // Get a link to the "current" directory (remove the HTML file name if there is one)
         var lastIsFile = this.path.getLast().isHTML();
-        var directoryPathLink = this.path.getPathLink( -( lastIsFile ? 2 : 1 ) );
+        var directoryPathLink = this.path.getParent( -( lastIsFile ? 2 : 1 ) );
         // Construct an absolute path by concatenating the current directory before the target URI
-        return directoryPathLink + "/" + uri;
+        return directoryPathLink.append( WikiPath.create( uri ) ).resolve().toActual();
     }
 
     protected hasScheme( uri: string | null ): boolean {
@@ -93,13 +108,19 @@ export class WikiRewriteContext {
     /**
      * Rewrite all the wiki content as appropriate.  In particular this changes links to use the router.
      */
-    rewrite( elements: HTMLElement[] ) {
+    rewrite( elements: HTMLElement[], onclick: ( a: HTMLElement ) => () => boolean ) {
         elements.forEach( element => {
             var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content a" );
             anchors.forEach( a => {
                 const attribute = "href";
                 var rewritten = this.rewriteAnchorHREF( a.getAttribute( attribute ) );
-                if ( rewritten !== null ) a.setAttribute( attribute, rewritten );
+                if ( rewritten !== null ) {
+                    var absolute = this.makeAbsolute( rewritten );
+                    if ( absolute !== null ) a.setAttribute( attribute, absolute );
+                    a.setAttribute( RouterLinkAttribute, rewritten );
+
+                    a.onclick = onclick( a );
+                }
             } );
 
             var images: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content img" );
@@ -123,7 +144,7 @@ export class WikiLinksService {
      * @param path The "wiki" path to the content.
      */
     getContentPath( path: string ): string {
-        return AssetsPathPrefix + "/" + WikiPathPrefix + "/".concat( path );
+        return AssetsPathPrefix + "/" + WikiPathPrefix + "/" + path;
     }
 
     createContext( location: Location, path: WikiPath ): WikiRewriteContext {

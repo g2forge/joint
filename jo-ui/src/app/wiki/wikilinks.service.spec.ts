@@ -38,7 +38,7 @@ describe( 'WikiLinksService', () => {
     beforeEach( () => {
         TestBed.configureTestingModule( {} );
         service = TestBed.inject( WikiLinksServiceExtended );
-        context = service.createContext( TestBed.inject( Location ), new WikiPath( "" ) );
+        context = service.createContext( TestBed.inject( Location ), WikiPath.create( "" ) );
     } );
 
     it( 'should be created', () => {
@@ -72,8 +72,8 @@ describe( 'WikiLinksService', () => {
     } );
 
     it( 'should rewrite URI to absolute', () => {
-        expect( service.createContext( TestBed.inject( Location ), new WikiPath( "" ) ).makeAbsolute( context.rewriteURI( "relative" ) ) ).toBe( "/wiki/relative" );
-        expect( service.createContext( TestBed.inject( Location ), new WikiPath( "subdirectory" ) ).makeAbsolute( context.rewriteURI( "relative" ) ) ).toBe( "/wiki/subdirectory/relative" );
+        expect( service.createContext( TestBed.inject( Location ), WikiPath.create( "" ) ).makeAbsolute( context.rewriteURI( "relative" ) ) ).toBe( "/wiki/relative" );
+        expect( service.createContext( TestBed.inject( Location ), WikiPath.create( "subdirectory" ) ).makeAbsolute( context.rewriteURI( "relative" ) ) ).toBe( "/wiki/subdirectory/relative" );
     } );
 
     it( 'should prefix content paths', () => {

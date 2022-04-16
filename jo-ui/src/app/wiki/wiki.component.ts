@@ -6,7 +6,7 @@ import { Router, ActivatedRoute, NavigationExtras } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { WikiLinksService, WikiPath, WikiPathPrefix, AssetsPathPrefix } from './wikilinks.service';
+import { WikiLinksService, WikiPath, WikiPathPrefix, AssetsPathPrefix, RouterLinkAttribute } from './wikilinks.service';
 import { SafeHtmlPipe } from '../safe-html.pipe';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
 
@@ -51,12 +51,12 @@ export class WikiComponent implements OnInit {
      */
     load( path: string ): void {
         if ( path === null && path === undefined ) return;
-        this.path = new WikiPath( path );
+        this.path = WikiPath.create( path );
 
         // HTTP GET the content
         this.http.get( this.wikiLinksService.getContentPath( path ), { responseType: 'text', observe: 'response' } ).pipe(
             catchError( ( error: HttpErrorResponse ) => {
-                this.setContent( "<h1>Page not found</h1>\n<p><span>" + this.path?.getPathLink( -1 ) + "</span> could not be found!</p>" );
+                this.setContent( "<h1>Page not found</h1>\n<p><span>" + this.path?.getParent( -1 ).resolve().toActual() + "</span> could not be found!</p>" );
                 console.log( error );
                 return of( null );
             } )
@@ -83,7 +83,20 @@ export class WikiComponent implements OnInit {
         // Wait 10ms and then do anything that depends on the content, since things like the fragment may be specified before the content is loaded.
         setTimeout( () => {
             var elements: HTMLElement[] = this.element.nativeElement.querySelectorAll( ".wiki-content" );
-            this.wikiLinksService.createContext( this.location, this.getPath() ).rewrite( elements );
+            this.wikiLinksService.createContext( this.location, this.getPath() ).rewrite( elements, a => () => {
+                var href = a.getAttribute( RouterLinkAttribute );
+                if ( href == null ) return true;
+
+                // Routes are relative to the page directory, but if we're currently displaying a directory (e.g. an index.html) then this *IS* the page directory
+                var base = this.getPath().getParent( this.getPath().getLast().isHTML() ? -2 : -1 );
+
+                var extras: NavigationExtras = {};
+                var split: string[] = href.split( '#' );
+                if ( split.length > 1 ) extras.fragment = split[1];
+                var joined = base.append(WikiPath.create(split[0])).resolve().toActual();
+                this.router.navigate( [joined], extras );
+                return false;
+            } );
 
             this.scroll();
         }, 10 );
