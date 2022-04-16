@@ -6,56 +6,9 @@ import { Router, ActivatedRoute, NavigationExtras } from '@angular/router';
 import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { WikiLinksService, WikiPath } from './wikilinks.service';
 import { SafeHtmlPipe } from '../safe-html.pipe';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
-
-class PathComponent {
-    /** The user friendly rendering of this path component. */
-    public display: string;
-    /** The server friendly (actual) path component. */
-    public actual: string;
-
-    public constructor( component: string ) {
-        this.display = component;
-        this.actual = component;
-    }
-
-    public isHTML(): boolean {
-        return this.actual.endsWith( ".html" );
-    }
-
-    public isIndex(): boolean {
-        return this.actual == 'index.html';
-    }
-}
-class Path {
-    public components: PathComponent[];
-
-    public constructor( path: string ) {
-        // Store the display path component
-        this.components = path.split( '/' ).filter( component => component != "" ).map( component => new PathComponent( component ) );
-        // Remove any ".html" suffix from the page for a prettier display
-        if ( this.components.length > 0 ) {
-            let last = this.components[this.components.length - 1];
-            last.display = last.isIndex() ? "" : last.display.replace( /\.html$/, "" );
-        }
-    }
-
-    public getLast(): PathComponent {
-        if ( this.components.length <= 0 ) return new PathComponent( "" );
-        return this.components[this.components.length - 1];
-    }
-
-    /**
-     * Create a router link to this path, or a subset thereof.
-     * @param end The index (exclusive) of the last part of the path to include in this link. Can be negative to specify removing a certain number of items (-1 removes 0 items, -2 removes 1 item, etc)
-     */
-    public getPathLink( end: number ): string {
-        if ( end < 0 ) end = this.components.length + end + 1;
-        if ( this.components.length < 1 ) return '/wiki';
-        return '/wiki/' + this.components.slice( 0, end ).map( component => component.actual ).join( "/" );
-    }
-}
 
 @Component( {
     selector: 'app-wiki',
@@ -67,7 +20,7 @@ export class WikiComponent implements OnInit {
     // Actual HTML content to display
     content: string = "";
     // The path within the wiki
-    path: Path | null = null;
+    path: WikiPath | null = null;
     // The fragment to scroll to
     fragment: string | null = null;
 
@@ -76,7 +29,8 @@ export class WikiComponent implements OnInit {
         private router: Router,
         private route: ActivatedRoute,
         private element: ElementRef,
-        private location: Location
+        private location: Location,
+        private wikiLinksService: WikiLinksService
     ) { }
 
     ngOnInit(): void {
@@ -97,7 +51,7 @@ export class WikiComponent implements OnInit {
      */
     load( path: string ): void {
         if ( path === null && path === undefined ) return;
-        this.path = new Path( path );
+        this.path = new WikiPath( path );
 
         // HTTP GET the content
         this.http.get( this.getContentPath( path ), { responseType: 'text', observe: 'response' } ).pipe(
@@ -138,14 +92,14 @@ export class WikiComponent implements OnInit {
     rewrite() {
         var anchors: HTMLElement[] = this.element.nativeElement.querySelectorAll( ".wiki-content a" );
         anchors.forEach( a => {
-            var updated = this.rewriteURI( a.getAttribute( "href" ), false );
+            var updated = this.wikiLinksService.rewriteURI( a.getAttribute( "href" ) );
             if ( updated === null ) return;
 
             a.setAttribute( "href", updated );
             a.onclick = () => {
                 var href = a.getAttribute( "href" );
                 // Don't route when the URI has a scheme (should never be triggered as these URIs aren't rewritten)
-                if ( ( href == null ) || this.hasScheme( href ) ) return true;
+                if ( ( href == null ) || this.wikiLinksService.hasScheme( href ) ) return true;
 
                 // Routes are relative to the page directory, but if we're currently displaying a directory (e.g. an index.html) then this *IS* the page directory
                 var base = this.getPath().getLast().isHTML() ? this.route.parent : this.route;
@@ -160,7 +114,7 @@ export class WikiComponent implements OnInit {
 
         var images: HTMLElement[] = this.element.nativeElement.querySelectorAll( ".wiki-content img" );
         images.forEach( img => {
-            var updated = this.rewriteURI( img.getAttribute( "src" ), true );
+            var updated = this.wikiLinksService.makeAbsolute( this.getPath(), this.wikiLinksService.rewriteURI( img.getAttribute( "src" ) ) );
             if ( updated === null ) return;
 
             var rewritten = updated.startsWith( "/assets" ) ? updated : ( '/assets' + updated );
@@ -168,32 +122,9 @@ export class WikiComponent implements OnInit {
         } );
     }
 
-    getPath(): Path {
+    getPath(): WikiPath {
         if ( this.path == null ) throw new Error( "No path" );
         return this.path;
-    }
-
-    rewriteURI( uri: string | null, makeAbsolute: boolean ): string | null {
-        // Don't modify URLs (which have a scheme like HTTP), only URIs
-        if ( ( uri == null ) || this.hasScheme( uri ) ) return null;
-
-        if ( makeAbsolute ) {
-            var absolute = uri.startsWith( "/" );
-            if ( !absolute ) {
-                var path: Path = this.getPath();
-
-                // Get a link to the "current" directory (remove the HTML file name if there is one)
-                var lastIsFile = path.getLast().isHTML();
-                var directoryPathLink = path.getPathLink( -( lastIsFile ? 2 : 1 ) );
-                // Construct an absolute path by concatenating the current directory before the target URI
-                return directoryPathLink + "/" + uri;
-            }
-        }
-        return uri;
-    }
-
-    hasScheme( url: string | null ): boolean {
-        return ( url != null ) && url.match( /^[a-zA-Z]+:.*$/ ) != null;
     }
 
     /**
@@ -201,7 +132,7 @@ export class WikiComponent implements OnInit {
      */
     scroll() {
         if ( this.fragment === null ) return;
-        
+
         const element = document.getElementById( this.fragment );
         if ( element != null ) element.scrollIntoView( { behavior: "smooth", block: "start", inline: "nearest" } );
     }
