@@ -42,6 +42,9 @@ public class JointMojo extends AbstractMojo {
 	@Parameter(property = "joint.maps", required = false, defaultValue = "false")
 	boolean maps;
 
+	@Parameter(property = "joint.servePort", required = false, defaultValue = "null")
+	Integer servePort;
+
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		final Path base = project.getBasedir().toPath();
@@ -55,7 +58,7 @@ public class JointMojo extends AbstractMojo {
 		if (baseHref != null) builder.baseHref(baseHref);
 		if (notFoundHandlers != null) builder.notFoundHandlers(Stream.of(notFoundHandlers.split(",")).map(String::trim).map(UIBuildComponent.NotFoundHandler::valueOf).collect(Collectors.toCollection(() -> EnumSet.noneOf(UIBuildComponent.NotFoundHandler.class))));
 		else builder.notFoundHandlers(EnumSet.allOf(UIBuildComponent.NotFoundHandler.class));
-		builder.maps(maps);
+		builder.maps(maps).servePort(servePort);
 
 		// Run joint
 		final Joint joint = builder.build();
