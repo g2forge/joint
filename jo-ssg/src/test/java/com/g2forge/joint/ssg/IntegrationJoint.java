@@ -76,7 +76,7 @@ public class IntegrationJoint {
 							}
 
 							@Override
-							public Stream<String> serve(Path working, Path node, Path npm) {
+							public Stream<String> serve(Path working, Path node, Path npm, Integer port) {
 								HAssert.fail();
 								throw new UnreachableCodeError();
 							}

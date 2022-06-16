@@ -98,7 +98,7 @@ public class UIBuildComponent implements IComponent {
 
 					break;
 				case ServeBuild:
-					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm), log::info).open().asCloseableWithWait());
+					context.register(new StreamConsumer(angular.serve(getWorking(), node, npm, getServePort()), log::info).open().asCloseableWithWait());
 					break;
 				case ServeRebuild:
 					break;
@@ -107,12 +107,12 @@ public class UIBuildComponent implements IComponent {
 	}
 
 	public static interface IAngular extends ICommandInterface {
-		public class NonNullArgumentRenderer implements IArgumentRenderer<String> {
+		public class NonNullArgumentRenderer implements IArgumentRenderer<Object> {
 			@Override
-			public List<String> render(IMethodArgument<String> argument) {
-				final String value = argument.get();
+			public List<String> render(IMethodArgument<Object> argument) {
+				final Object value = argument.get();
 				if (value == null) return HCollection.emptyList();
-				return HDumbCommandConverter.computeString(argument, value);
+				return HDumbCommandConverter.computeString(argument, value.toString());
 			}
 		}
 
@@ -123,7 +123,7 @@ public class UIBuildComponent implements IComponent {
 		public Stream<String> maps(@Working Path working, @EnvPath Path node, @Constant({ "run", "maps" }) Path npm, Path output);
 
 		@Command({})
-		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve" }) Path npm);
+		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve", "--" }) Path npm, @Named(value = "--port", joined = false) @ArgumentRenderer(NonNullArgumentRenderer.class) Integer port);
 	}
 
 	public static class NonServeFileConversion extends FileConversion {
@@ -187,6 +187,8 @@ public class UIBuildComponent implements IComponent {
 	protected final boolean initialize;
 
 	protected final boolean maps;
+
+	protected final Integer servePort;
 
 	@Builder.Default
 	protected final String baseHref = null;
