@@ -107,12 +107,12 @@ public class UIBuildComponent implements IComponent {
 	}
 
 	public static interface IAngular extends ICommandInterface {
-		public class NonNullArgumentRenderer implements IArgumentRenderer<String> {
+		public class NonNullArgumentRenderer implements IArgumentRenderer<Object> {
 			@Override
-			public List<String> render(IMethodArgument<String> argument) {
-				final String value = argument.get();
+			public List<String> render(IMethodArgument<Object> argument) {
+				final Object value = argument.get();
 				if (value == null) return HCollection.emptyList();
-				return HDumbCommandConverter.computeString(argument, value);
+				return HDumbCommandConverter.computeString(argument, value.toString());
 			}
 		}
 
