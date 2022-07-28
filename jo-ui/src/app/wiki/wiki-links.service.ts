@@ -114,7 +114,7 @@ export class WikiRewriteContext {
     /**
      * Rewrite all the wiki content as appropriate. 
      */
-    rewrite( html: string ): HTMLElement {
+    rewrite( html: string ): string {
         const domParser = new DOMParser();
         const element: HTMLElement = domParser.parseFromString( html, 'text/html' ).documentElement;
         
@@ -136,7 +136,7 @@ export class WikiRewriteContext {
             if ( rewritten !== null ) img.setAttribute( attribute, rewritten );
         } );
         
-        return element;
+        return element.outerHTML;
     }
 }
 

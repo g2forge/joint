@@ -81,9 +81,7 @@ export class WikiComponent implements OnInit {
     setContent( content: string ) {
         // Save the content
         const context = this.wikiLinksService.createContext( this.location, this.getPath() );
-
-
-        this.content = context.rewrite( content ).outerHTML;
+        this.content = context.rewrite( content );
 
         // Wait 10ms and then do anything that depends on the content, since things like the fragment may be specified before the content is loaded.
         setTimeout( () => {
@@ -102,6 +100,7 @@ export class WikiComponent implements OnInit {
     protected anchorOnClick( a: HTMLElement ): () => boolean {
         return () => {
             var href = a.getAttribute( RouterLinkAttribute );
+            // If there's no router link, then follow the normal link
             if ( href == null ) return true;
 
             // Routes are relative to the page directory, but if we're currently displaying a directory (e.g. an index.html) then this *IS* the page directory
@@ -110,7 +109,8 @@ export class WikiComponent implements OnInit {
             var extras: NavigationExtras = {};
             var split: string[] = href.split( '#' );
             if ( split.length > 1 ) extras.fragment = split[1];
-            var joined = base.append( WikiPath.create( split[0] ) ).resolve().toActual();
+            // If the router link is absolute, then don't prepend the base
+            var joined = ( split[0].startsWith( "/" ) ? split[0] : base.append( WikiPath.create( split[0] ) ).resolve().toActual() );
             this.router.navigate( [joined], extras );
             return false;
         }

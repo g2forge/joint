@@ -86,4 +86,12 @@ describe( 'WikiLinksService', () => {
     it( 'should rewrite img src correctly', () => {
         expect( context.rewriteImgSrc( "image.png" ) ).toBe( TestBed.inject( Location ).prepareExternalUrl( "/assets/wiki/image.png" ) );
     } );
+
+    it( 'should rewrite absolute links', () => {
+        expect( context.rewrite( "<a href=\"/wiki/absolute\">absolute</a>" ) ).toBe( "<html><head></head><body><a href=\"/wiki/absolute\" router-link=\"/wiki/absolute\">absolute</a></body></html>" );
+    } );
+
+    it( 'should rewrite relative links', () => {
+        expect( context.rewrite( "<a href=\"dir\">dir</a>" ) ).toBe( "<html><head></head><body><a href=\"/wiki/dir\" router-link=\"dir\">dir</a></body></html>" );
+    } );
 } );
