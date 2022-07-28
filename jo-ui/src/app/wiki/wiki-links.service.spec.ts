@@ -2,8 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { Injectable } from '@angular/core';
 
 import { Location } from '@angular/common';
-import { WikiLinksService, WikiPath, WikiRewriteContext } from './wikilinks.service';
+import { WikiLinksService, WikiPath, WikiRewriteContext } from './wiki-links.service';
 
+/**
+ * Expose methods for testing.
+ */
 export class WikiRewriteContextExtended extends WikiRewriteContext {
     constructor( readonly location: Location, readonly path: WikiPath ) { super( location, path ); }
 

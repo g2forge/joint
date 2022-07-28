@@ -5,6 +5,9 @@ export const WikiPathPrefix: string = "wiki";
 export const AssetsPathPrefix: string = "assets";
 export const RouterLinkAttribute: string = "router-link";
 
+/**
+ * A component of a WikiPath.
+  */
 class PathComponent {
     /** The user friendly rendering of this path component. */
     public display: string;
@@ -25,6 +28,9 @@ class PathComponent {
     }
 }
 
+/**
+ * A path.
+ */
 export class WikiPath {
     public constructor( readonly components: PathComponent[] ) { }
 
@@ -64,7 +70,7 @@ export class WikiPath {
     }
 
     public resolve(): WikiPath {
-        return new WikiPath(this.components.filter(component => component.actual !== '.'));
+        return new WikiPath( this.components.filter( component => component.actual !== '.' ) );
     }
 }
 
@@ -106,30 +112,31 @@ export class WikiRewriteContext {
     }
 
     /**
-     * Rewrite all the wiki content as appropriate.  In particular this changes links to use the router.
+     * Rewrite all the wiki content as appropriate. 
      */
-    rewrite( elements: HTMLElement[], onclick: ( a: HTMLElement ) => () => boolean ) {
-        elements.forEach( element => {
-            var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content a" );
-            anchors.forEach( a => {
-                const attribute = "href";
-                var rewritten = this.rewriteAnchorHREF( a.getAttribute( attribute ) );
-                if ( rewritten !== null ) {
-                    var absolute = this.makeAbsolute( rewritten );
-                    if ( absolute !== null ) a.setAttribute( attribute, absolute );
-                    a.setAttribute( RouterLinkAttribute, rewritten );
-
-                    a.onclick = onclick( a );
-                }
-            } );
-
-            var images: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content img" );
-            images.forEach( img => {
-                const attribute = "src";
-                var rewritten = this.rewriteImgSrc( img.getAttribute( attribute ) );
-                if ( rewritten !== null ) img.setAttribute( attribute, rewritten );
-            } );
+    rewrite( html: string ): HTMLElement {
+        const domParser = new DOMParser();
+        const element: HTMLElement = domParser.parseFromString( html, 'text/html' ).documentElement;
+        
+        var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( "a" );
+        anchors.forEach( a => {
+            const attribute = "href";
+            var rewritten = this.rewriteAnchorHREF( a.getAttribute( attribute ) );
+            if ( rewritten !== null ) {
+                var absolute = this.makeAbsolute( rewritten );
+                if ( absolute !== null ) a.setAttribute( attribute, absolute );
+                a.setAttribute( RouterLinkAttribute, rewritten );
+            }
         } );
+
+        var images: NodeListOf<HTMLElement> = element.querySelectorAll( "img" );
+        images.forEach( img => {
+            const attribute = "src";
+            var rewritten = this.rewriteImgSrc( img.getAttribute( attribute ) );
+            if ( rewritten !== null ) img.setAttribute( attribute, rewritten );
+        } );
+        
+        return element;
     }
 }
 
