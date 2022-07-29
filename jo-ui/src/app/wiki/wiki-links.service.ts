@@ -3,8 +3,12 @@ import { Location } from '@angular/common';
 
 export const WikiPathPrefix: string = "wiki";
 export const AssetsPathPrefix: string = "assets";
+export const HREFAttribute: string = "href";
 export const RouterLinkAttribute: string = "router-link";
 
+/**
+ * A component of a WikiPath.
+  */
 class PathComponent {
     /** The user friendly rendering of this path component. */
     public display: string;
@@ -25,6 +29,9 @@ class PathComponent {
     }
 }
 
+/**
+ * A path.
+ */
 export class WikiPath {
     public constructor( readonly components: PathComponent[] ) { }
 
@@ -54,9 +61,11 @@ export class WikiPath {
         return new WikiPath( this.components.slice( 0, end ) );
     }
 
-    public toActual(): string {
-        if ( this.components.length < 1 ) return "/" + WikiPathPrefix;
-        return "/" + WikiPathPrefix + '/' + this.components.map( component => component.actual ).join( "/" );
+    public toActual( asset: boolean ): string {
+        const prefix = asset ? AssetsPathPrefix + "/" + WikiPathPrefix : WikiPathPrefix;
+
+        if ( this.components.length < 1 ) return "/" + prefix;
+        return "/" + prefix + '/' + this.components.map( component => component.actual ).join( "/" );
     }
 
     public append( suffix: WikiPath ): WikiPath {
@@ -64,7 +73,19 @@ export class WikiPath {
     }
 
     public resolve(): WikiPath {
-        return new WikiPath(this.components.filter(component => component.actual !== '.'));
+        var components = this.components.filter( component => component.actual !== '.' );
+
+        if ( components.length > 0 ) {
+            var i = 1;
+            while ( i < components.length ) {
+                if ( ( components[i].actual === '..' ) && ( components[i - 1].actual !== '..' ) ) {
+                    components.splice( i - 1, 2 );
+                    i = Math.min( 1, i - 1 );
+                } else i++;
+            }
+        }
+
+        return new WikiPath( components );
     }
 }
 
@@ -76,10 +97,8 @@ export class WikiRewriteContext {
     }
 
     rewriteImgSrc( src: string | null ): string | null {
-        var updated = this.makeAbsolute( this.rewriteURI( src ) );
-        if ( updated === null ) return null;
-
-        var rewritten = updated.startsWith( "/" + AssetsPathPrefix ) ? updated : ( "/" + AssetsPathPrefix + updated );
+        var rewritten = this.makeAbsolute( this.rewriteURI( src ), true );
+        if ( rewritten === null ) return null;
         return this.location.prepareExternalUrl( rewritten );
     }
 
@@ -89,7 +108,7 @@ export class WikiRewriteContext {
         return uri;
     }
 
-    protected makeAbsolute( uri: string | null ): string | null {
+    protected makeAbsolute( uri: string | null, asset: boolean ): string | null {
         if ( uri == null ) return null;
 
         if ( uri.startsWith( "/" ) ) return uri;
@@ -98,7 +117,7 @@ export class WikiRewriteContext {
         var lastIsFile = this.path.getLast().isHTML();
         var directoryPathLink = this.path.getParent( -( lastIsFile ? 2 : 1 ) );
         // Construct an absolute path by concatenating the current directory before the target URI
-        return directoryPathLink.append( WikiPath.create( uri ) ).resolve().toActual();
+        return directoryPathLink.append( WikiPath.create( uri ) ).resolve().toActual( asset );
     }
 
     protected hasScheme( uri: string | null ): boolean {
@@ -106,30 +125,41 @@ export class WikiRewriteContext {
     }
 
     /**
-     * Rewrite all the wiki content as appropriate.  In particular this changes links to use the router.
+     * Rewrite all the wiki content as appropriate. 
      */
-    rewrite( elements: HTMLElement[], onclick: ( a: HTMLElement ) => () => boolean ) {
-        elements.forEach( element => {
-            var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content a" );
-            anchors.forEach( a => {
-                const attribute = "href";
-                var rewritten = this.rewriteAnchorHREF( a.getAttribute( attribute ) );
-                if ( rewritten !== null ) {
-                    var absolute = this.makeAbsolute( rewritten );
-                    if ( absolute !== null ) a.setAttribute( attribute, absolute );
-                    a.setAttribute( RouterLinkAttribute, rewritten );
+    rewrite( html: string, contentType: ( ( uri: string | null ) => Promise<string | null> ) | null ): Promise<string> {
+        const domParser = new DOMParser();
+        const element: HTMLElement = domParser.parseFromString( html, 'text/html' ).documentElement;
 
-                    a.onclick = onclick( a );
-                }
-            } );
+        var promises: Promise<any>[] = [];
+        var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( "a" );
+        anchors.forEach( a => {
+            var rewritten = this.rewriteAnchorHREF( a.getAttribute( HREFAttribute ) );
+            if ( rewritten !== null ) {
+                var isHTML: Promise<boolean>;
+                if ( contentType == null ) isHTML = Promise.resolve( true );
+                else isHTML = contentType( this.makeAbsolute( rewritten, true ) ).then( resolved => ( resolved == null ) || ( resolved.match( /^text\/html(;.*)?$/i ) != null ) );
+                promises.push( isHTML );
 
-            var images: NodeListOf<HTMLElement> = element.querySelectorAll( ".wiki-content img" );
-            images.forEach( img => {
-                const attribute = "src";
-                var rewritten = this.rewriteImgSrc( img.getAttribute( attribute ) );
-                if ( rewritten !== null ) img.setAttribute( attribute, rewritten );
-            } );
+                isHTML.then( resolved => {
+                    var absolute = this.makeAbsolute( rewritten, !resolved );
+                    if ( absolute !== null ) {
+                        // Set the HREF to an absolute link, because the browser side paths are complex due to HTML5/Angular cleverness
+                        a.setAttribute( HREFAttribute, absolute );
+                        if ( resolved ) a.setAttribute( RouterLinkAttribute, absolute );
+                    }
+                } );
+            }
         } );
+
+        var images: NodeListOf<HTMLElement> = element.querySelectorAll( "img" );
+        images.forEach( img => {
+            const attribute = "src";
+            var rewritten = this.rewriteImgSrc( img.getAttribute( attribute ) );
+            if ( rewritten !== null ) img.setAttribute( attribute, rewritten );
+        } );
+
+        return Promise.all( promises ).then( resolved => element.outerHTML );
     }
 }
 
