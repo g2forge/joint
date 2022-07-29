@@ -9,12 +9,14 @@ import { catchError, map, shareReplay } from 'rxjs/operators';
 } )
 export class WikiContentTypeService {
     private cache: Map<string, Observable<string | null>> = new Map();
-    
+
     constructor(
         private http: HttpClient
     ) { }
 
-    getContentType( url: string ): Observable<string | null> {
+    getContentType( url: string | null ): Observable<string | null> {
+        if ( url == null ) return of( null );
+
         var retVal = this.cache.get( url );
         if ( retVal !== undefined ) return retVal;
 
@@ -24,7 +26,6 @@ export class WikiContentTypeService {
                 return of( null );
             } ),
             map( ( response: HttpResponse<Object> | null ) => {
-                console.log( "head" );
                 if ( response == null ) return null;
 
                 var contentType = response.headers.get( "Content-Type" );

@@ -58,7 +58,7 @@ export class WikiComponent implements OnInit {
         // HTTP GET the content
         this.http.get( this.wikiLinksService.getContentPath( path ), { responseType: 'text', observe: 'response' } ).pipe(
             catchError( ( error: HttpErrorResponse ) => {
-                this.setContent( "<h1>Page not found</h1>\n<p><span>" + this.path?.getParent( -1 ).resolve().toActual() + "</span> could not be found!</p>" );
+                this.setContent( "<h1>Page not found</h1>\n<p><span>" + this.path?.getParent( -1 ).resolve().toActual( false ) + "</span> could not be found!</p>" );
                 console.log( error );
                 return of( null );
             } )
@@ -81,20 +81,22 @@ export class WikiComponent implements OnInit {
     setContent( content: string ) {
         // Save the content
         const context = this.wikiLinksService.createContext( this.location, this.getPath() );
-        this.content = context.rewrite( content );
+        context.rewrite( content, uri => this.wikiContentTypeService.getContentType( uri ).toPromise() ).then( content => {
+            this.content = content;
 
-        // Wait 10ms and then do anything that depends on the content, since things like the fragment may be specified before the content is loaded.
-        setTimeout( () => {
-            var elements: HTMLElement[] = this.element.nativeElement.querySelectorAll( ".wiki-content" );
-            elements.forEach( element => {
-                var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( "a[router-link]" );
-                anchors.forEach( a => {
-                    a.onclick = this.anchorOnClick( a );
+            // Wait 10ms and then do anything that depends on the content, since things like the fragment may be specified before the content is loaded.
+            setTimeout( () => {
+                var elements: HTMLElement[] = this.element.nativeElement.querySelectorAll( ".wiki-content" );
+                elements.forEach( element => {
+                    var anchors: NodeListOf<HTMLElement> = element.querySelectorAll( "a[router-link]" );
+                    anchors.forEach( a => {
+                        a.onclick = this.anchorOnClick( a );
+                    } );
                 } );
-            } );
 
-            this.scroll();
-        }, 10 );
+                this.scroll();
+            }, 10 );
+        } );
     }
 
     protected anchorOnClick( a: HTMLElement ): () => boolean {
@@ -110,7 +112,7 @@ export class WikiComponent implements OnInit {
             var split: string[] = href.split( '#' );
             if ( split.length > 1 ) extras.fragment = split[1];
             // If the router link is absolute, then don't prepend the base
-            var joined = ( split[0].startsWith( "/" ) ? split[0] : base.append( WikiPath.create( split[0] ) ).resolve().toActual() );
+            var joined = ( split[0].startsWith( "/" ) ? split[0] : base.append( WikiPath.create( split[0] ) ).resolve().toActual( false ) );
             this.router.navigate( [joined], extras );
             return false;
         }
