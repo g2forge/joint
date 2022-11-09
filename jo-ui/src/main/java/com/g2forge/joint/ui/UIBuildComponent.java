@@ -1,6 +1,5 @@
 package com.g2forge.joint.ui;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +17,6 @@ import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.function.IConsumer1;
 import com.g2forge.alexandria.java.io.HIO;
 import com.g2forge.alexandria.java.io.HTextIO;
-import com.g2forge.alexandria.java.io.RuntimeIOException;
 import com.g2forge.gearbox.command.converter.IMethodArgument;
 import com.g2forge.gearbox.command.converter.dumb.ArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Command;
@@ -72,15 +70,17 @@ public class UIBuildComponent implements IComponent {
 			final Path node = getWorking().resolve("node");
 			if (isInitialize()) {
 				final Path init = node.resolve("init");
-				boolean initialize = !Files.isRegularFile(init);
-				if (!initialize) {
-					final String actual = HBinary.toHex(HIO.sha1(getWorking().resolve("package.json"), Files::newInputStream)).trim().toUpperCase(), expected;
-					try (final InputStream stream = Files.newInputStream(init)) {
-						expected = HCollection.getFirst(HTextIO.readAll(stream)).trim().toUpperCase();
-					} catch (IOException exception) {
-						throw new RuntimeIOException(exception);
+				boolean initialize = true;
+				if (Files.isRegularFile(init)) {
+					try {
+						final String actual = HBinary.toHex(HIO.sha1(getWorking().resolve("package.json"), Files::newInputStream)).trim().toUpperCase(), expected;
+						try (final InputStream stream = Files.newInputStream(init)) {
+							expected = HCollection.getFirst(HTextIO.readAll(stream)).trim().toUpperCase();
+						}
+						if (actual.equals(expected)) initialize = false;
+					} catch (Throwable throwable) {
+						log.error("Failed to determine whether the UI build was already initialized, will initialize it to make sure", throwable);
 					}
-					initialize = !actual.equals(expected);
 				}
 				if (initialize) getFactory().apply(IMaven.class).maven(getWorking(), Paths.get("./mvnw"), true, "initialize", HCollection.asList("ui-build")).forEach(log::info);
 			}

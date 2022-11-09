@@ -7,4 +7,8 @@ SELF=${SELF_DIR}/$(basename ${0})
 ROOT="${SELF_DIR}/../.."
 INIT="${ROOT}/node/init"
 rm -rf "${INIT}"
-sha1sum "${ROOT}/package.json" | sed -e 's/^\([^ ]*\) .*$/\1/' > "${INIT}"
+if ! which sha1sum >/dev/null 2>&1; then
+	echo "sha1sum was not found on this machine, repeated builds will be slow due to unnecessary initialization, please instance sha1sum"
+else
+	sha1sum "${ROOT}/package.json" | sed -e 's/^\([^ ]*\) .*$/\1/' > "${INIT}"
+fi
