@@ -17,8 +17,8 @@ import com.g2forge.alexandria.annotations.note.Note;
 import com.g2forge.alexandria.annotations.note.NoteType;
 import com.g2forge.alexandria.java.core.helpers.HCollection;
 import com.g2forge.alexandria.java.function.IConsumer1;
-import com.g2forge.alexandria.java.io.Filename;
 import com.g2forge.alexandria.media.IMediaType;
+import com.g2forge.alexandria.path.path.filename.Filename;
 import com.g2forge.joint.core.IComponent;
 import com.g2forge.joint.core.IConversion;
 import com.g2forge.joint.core.copy.CopyComponent;
@@ -123,7 +123,7 @@ public class StaticContentComponent implements IComponent {
 
 					break;
 				default:
-					final IMediaType mediaType = getConfiguration().getRegistry().computeMediaType(new Filename(entry.getRelative()));
+					final IMediaType mediaType = getConfiguration().getRegistry().computeMediaType(Filename.fromPath(entry.getRelative()));
 					retVal.conversionType(getConfiguration().getTypes().getOrDefault(mediaType, CopyConversionType.create()));
 					break;
 			}

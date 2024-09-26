@@ -9,8 +9,9 @@ import java.util.stream.Stream;
 
 import com.g2forge.alexandria.java.core.helpers.HStream;
 import com.g2forge.alexandria.java.core.marker.ISingleton;
-import com.g2forge.alexandria.java.io.Filename;
+import com.g2forge.alexandria.java.io.HPath;
 import com.g2forge.alexandria.java.io.HTextIO;
+import com.g2forge.alexandria.path.path.filename.Filename;
 import com.g2forge.joint.core.IConversionContext;
 import com.g2forge.joint.core.copy.FileConversion;
 import com.g2forge.joint.core.copy.IFileConversionType;
@@ -33,14 +34,14 @@ public class PlantUMLConversionType implements IFileConversionType, ISingleton {
 	@Override
 	public Path computeOutputRelative(FileConversion conversion) {
 		final Path inputRelative = conversion.getInputRelative();
-		final Filename filename = new Filename(inputRelative);
-		if (filename.getComponents().size() > 2) return Filename.modifyFilename(inputRelative, filename.getFullName());
-		else return Filename.modifyFilename(inputRelative, filename.getFirstName() + FileFormat.PNG.getFileSuffix());
+		final Filename filename = Filename.fromPath(inputRelative);
+		if (filename.size() > 2) return HPath.replaceFilename(inputRelative, filename.getPrefix().toString());
+		else return HPath.replaceFilename(inputRelative, filename.getFirst() + FileFormat.PNG.getFileSuffix());
 	}
 
 	@Override
 	public void convert(IConversionContext context, FileConversion conversion, Path input, Path output) throws IOException {
-		final String extension = "." + new Filename(output).getLastExtension();
+		final String extension = "." + Filename.fromPath(output).getLast();
 		final FileFormat format = HStream.findOne(Stream.of(FileFormat.values()).filter(f -> f.getFileSuffix().toLowerCase().equals(extension)));
 
 		if (!Files.isRegularFile(output) || (Files.getLastModifiedTime(output).compareTo(Files.getLastModifiedTime(input)) <= 0)) {

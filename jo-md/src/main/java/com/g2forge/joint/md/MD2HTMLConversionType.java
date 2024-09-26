@@ -11,12 +11,13 @@ import java.util.stream.Collectors;
 
 import com.g2forge.alexandria.java.core.helpers.HCollection;
 import com.g2forge.alexandria.java.function.IFunction1;
-import com.g2forge.alexandria.java.io.Filename;
+import com.g2forge.alexandria.java.io.HPath;
 import com.g2forge.alexandria.java.io.dataaccess.PathDataSink;
 import com.g2forge.alexandria.java.io.dataaccess.PathDataSource;
 import com.g2forge.alexandria.java.text.escape.IEscaper;
 import com.g2forge.alexandria.java.text.escape.SequenceEscaper;
 import com.g2forge.alexandria.media.MediaType;
+import com.g2forge.alexandria.path.path.filename.Filename;
 import com.g2forge.joint.core.IConversion;
 import com.g2forge.joint.core.IConversionContext;
 import com.g2forge.joint.core.copy.FileConversion;
@@ -124,8 +125,8 @@ public class MD2HTMLConversionType implements IFileConversionType {
 	@Override
 	public Path computeOutputRelative(FileConversion conversion) {
 		final Path inputRelative = conversion.getInputRelative();
-		if (new Filename(inputRelative).getFullName().equals("README")) return Filename.modifyFilename(inputRelative, "index." + MediaType.HTML.getFileExtensions().getDefaultExtension());
-		else return Filename.replaceLastExtension(inputRelative, MediaType.HTML.getFileExtensions().getDefaultExtension());
+		if (Filename.fromPath(inputRelative).getPrefix().toString().equals("README")) return HPath.replaceFilename(inputRelative, "index." + MediaType.HTML.getFileExtensions().getDefaultExtension());
+		else return Filename.replaceExtension(inputRelative, MediaType.HTML.getFileExtensions().getDefaultExtension());
 	}
 
 	@Override

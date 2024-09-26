@@ -12,9 +12,9 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import com.g2forge.alexandria.java.function.IFunction1;
-import com.g2forge.alexandria.java.io.Filename;
 import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
+import com.g2forge.alexandria.path.path.filename.Filename;
 import com.g2forge.alexandria.test.HAssert;
 import com.g2forge.joint.core.ExtendedMediaType;
 
@@ -28,7 +28,7 @@ public class TestMD2HTMLConversionType {
 		if (inputMediaType == MediaType.Markdown) outputMediaType = MediaType.HTML;
 		else if (inputMediaType == ExtendedMediaType.PlantUML) outputMediaType = MediaType.PNG;
 		else outputMediaType = inputMediaType;
-		return (outputMediaType == null) ? path : Filename.replaceLastExtension(path, outputMediaType.getFileExtensions().getDefaultExtension());
+		return (outputMediaType == null) ? path : Filename.replaceExtension(path, outputMediaType.getFileExtensions().getDefaultExtension());
 	};
 
 	@Rule
