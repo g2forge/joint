@@ -53,12 +53,13 @@ import com.g2forge.alexandria.media.IMediaType;
 import com.g2forge.alexandria.media.MediaType;
 import com.g2forge.alexandria.test.HAssert;
 import com.g2forge.gearbox.command.converter.IMethodArgument;
-import com.g2forge.gearbox.command.converter.dumb.ArgumentRenderer;
+import com.g2forge.gearbox.command.converter.argumentrenderer.ASimpleArgumentRenderer;
+import com.g2forge.gearbox.command.converter.argumentrenderer.ArgumentRenderer;
+import com.g2forge.gearbox.command.converter.argumentrenderer.ToStringArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.DumbCommandConverter;
-import com.g2forge.gearbox.command.converter.dumb.IArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Named;
-import com.g2forge.gearbox.command.converter.dumb.ToStringArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Working;
+import com.g2forge.gearbox.command.process.MetaCommandArgument;
 import com.g2forge.gearbox.command.process.ProcessBuilderRunner;
 import com.g2forge.gearbox.command.process.redirect.IRedirect;
 import com.g2forge.gearbox.command.proxy.CommandProxyFactory;
@@ -76,17 +77,17 @@ import net.sourceforge.plantuml.security.ImageIO;
 
 public class TestJoint {
 	public interface IJoint {
-		public class ComponentsArgumentRenderer implements IArgumentRenderer<Set<Joint.Component>> {
+		public class ComponentsArgumentRenderer extends ASimpleArgumentRenderer<Set<Joint.Component>> {
 			@Override
-			public List<String> render(IMethodArgument<Set<Joint.Component>> argument) {
+			protected List<String> renderSimple(IMethodArgument<Set<Joint.Component>> argument) {
 				return HCollection.asList("--components", argument.get().stream().map(Object::toString).collect(Collectors.joining(",")));
 			}
 		}
 
 		public default Stream<String> joint(@Working Path pwd, Path input, Path output, @Named(value = "--operation", joined = false) @ArgumentRenderer(ToStringArgumentRenderer.class) Operation operation, @ArgumentRenderer(ComponentsArgumentRenderer.class) Set<Joint.Component> components) {
 			throw new ModifyProcessInvocationException(processInvocation -> {
-				final CommandInvocation<IRedirect, IRedirect> inputCommand = processInvocation.getCommandInvocation();
-				final CommandInvocationBuilder<IRedirect, IRedirect> commandBuilder = inputCommand.toBuilder();
+				final CommandInvocation<MetaCommandArgument, IRedirect, IRedirect> inputCommand = processInvocation.getCommandInvocation();
+				final CommandInvocationBuilder<MetaCommandArgument, IRedirect, IRedirect> commandBuilder = inputCommand.toBuilder();
 				commandBuilder.clearArguments();
 
 				final PathSpec pathSpec = HPlatform.getPlatform().getPathSpec();
