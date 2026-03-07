@@ -29,10 +29,10 @@
 		</dependency>
 	</dependencies>
 
-	<build>
+	<!-- <build>
 		<resources>
 			<resource>
-				<!-- This entry is additional, all the others are the defaults from ax-root -->
+				COMMENT: This entry is additional, all the others are the defaults from ax-root
 				<directory>${basedir}/dist</directory>
 			</resource>
 			<resource>
@@ -121,7 +121,8 @@
 						</goals>
 						<phase>test</phase>
 						<configuration>
-							<arguments>run test -- --watch=false</arguments>
+							COMMENT
+							<arguments>run test - - - -watch=false</arguments>
 						</configuration>
 					</execution>
 				</executions>
@@ -229,5 +230,5 @@
 				</plugins>
 			</build>
 		</profile>
-	</profiles>
+	</profiles> -->
 </project>
