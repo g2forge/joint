@@ -93,15 +93,15 @@ public class TestJoint {
 				final PathSpec pathSpec = HPlatform.getPlatform().getPathSpec();
 
 				// Add the java executable
-				commandBuilder.argument(System.getProperty("java.home") + pathSpec.getFileSeparator() + "bin" + pathSpec.getFileSeparator() + "java");
+				commandBuilder.argument(new MetaCommandArgument(System.getProperty("java.home") + pathSpec.getFileSeparator() + "bin" + pathSpec.getFileSeparator() + "java", null));
 				// Uncomment to enable debugging of the child process
 				//commandBuilder.argument("-Xdebug");
 				//commandBuilder.argument("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9000");
 				// Add the classpath
-				commandBuilder.argument("-cp").argument(System.getProperty("java.class.path"));
+				commandBuilder.argument(new MetaCommandArgument("-cp", null)).argument(new MetaCommandArgument(System.getProperty("java.class.path"), null));
 
 				// Add the joint class
-				commandBuilder.argument(Joint.class.getName());
+				commandBuilder.argument(new MetaCommandArgument(Joint.class.getName(), null));
 				// Add the joint arguments
 				commandBuilder.arguments(inputCommand.getArguments().subList(1, inputCommand.getArguments().size()));
 
