@@ -16,7 +16,8 @@ import com.g2forge.alexandria.java.io.file.CopyWalker;
 import com.g2forge.alexandria.java.io.file.TempDirectory;
 import com.g2forge.alexandria.test.HAssert;
 import com.g2forge.gearbox.command.process.IProcess;
-import com.g2forge.gearbox.command.proxy.ICommandProxyFactory;
+import com.g2forge.gearbox.command.proxy.FailCommandProxyFactory;
+import com.g2forge.gearbox.command.proxy.ManualCommandProxyFactory;
 import com.g2forge.gearbox.git.HGit;
 import com.g2forge.gearbox.github.codeowners.GHCodeOwners;
 import com.g2forge.gearbox.maven.IMaven;
@@ -37,58 +38,40 @@ public class IntegrationJoint {
 			CopyWalker.builder().target(input).build().walkFileTree(source);
 			Files.createDirectories(input.resolve(HGit.GIT_DIRECTORY));
 
-			HAssert.assertEquals(Integer.valueOf(0), Joint.builder().input(input).output(output).components(EnumSet.allOf(Joint.Component.class)).commandProxyFactory(new ICommandProxyFactory() {
+			HAssert.assertEquals(Integer.valueOf(0), Joint.builder().input(input).output(output).components(EnumSet.allOf(Joint.Component.class)).commandProxyFactory(ManualCommandProxyFactory.builder().fallback(FailCommandProxyFactory.create()).proxy(IMaven.class, new IMaven() {
 				@Override
-				public <_T> _T apply(Class<_T> type) {
-					if (IMaven.class.equals(type)) {
-						final IMaven maven = new IMaven() {
-							@Override
-							public IProcess dependencyCopy(Path path, boolean batch, MavenCoordinates artifact, Path outputDirectory) {
-								HAssert.fail();
-								throw new UnreachableCodeError();
-							}
-
-							@Override
-							public Stream<String> effectivePOM(Path path, boolean batch, Path output) {
-								HAssert.fail();
-								throw new UnreachableCodeError();
-							}
-
-							@Override
-							public Stream<String> maven(Path path, Path maven, boolean batch, String goal, List<String> profiles) {
-								return Stream.of("Maven output");
-							}
-						};
-						@SuppressWarnings("unchecked")
-						final _T retVal = (_T) maven;
-						return retVal;
-					}
-					if (IAngular.class.equals(type)) {
-						final IAngular angular = new IAngular() {
-							@Override
-							public Stream<String> build(Path working, Path node, Path npm, Path output, String baseHref) {
-								return Stream.of("Angular output");
-							}
-
-							@Override
-							public Stream<String> maps(Path working, Path node, Path npm, Path output) {
-								return Stream.of("Maps output");
-							}
-
-							@Override
-							public Stream<String> serve(Path working, Path node, Path npm, Integer port) {
-								HAssert.fail();
-								throw new UnreachableCodeError();
-							}
-						};
-						@SuppressWarnings("unchecked")
-						final _T retVal = (_T) angular;
-						return retVal;
-					}
+				public IProcess dependencyCopy(Path path, boolean batch, MavenCoordinates artifact, Path outputDirectory) {
 					HAssert.fail();
 					throw new UnreachableCodeError();
 				}
-			}).build().call());
+
+				@Override
+				public Stream<String> effectivePOM(Path path, boolean batch, Path output) {
+					HAssert.fail();
+					throw new UnreachableCodeError();
+				}
+
+				@Override
+				public Stream<String> maven(Path path, Path maven, boolean batch, String goal, List<String> profiles) {
+					return Stream.of("Maven output");
+				}
+			}).proxy(IAngular.class, new IAngular() {
+				@Override
+				public Stream<String> build(Path working, Path node, Path npm, Path output, String baseHref) {
+					return Stream.of("Angular output");
+				}
+
+				@Override
+				public Stream<String> maps(Path working, Path node, Path npm, Path output) {
+					return Stream.of("Maps output");
+				}
+
+				@Override
+				public Stream<String> serve(Path working, Path node, Path npm, Integer port) {
+					HAssert.fail();
+					throw new UnreachableCodeError();
+				}
+			}).build()).build().call());
 
 			HAssert.assertEquals(new Resource(getClass(), name + "/output/CODEOWNERS"), input.resolve(GHCodeOwners.GITHUB_CODEOWNERS));
 			HAssert.assertEquals(new Resource(getClass(), name + "/output/index.html"), input.resolve(Joint.JOINT).resolve("src/assets/wiki/index.html"));
