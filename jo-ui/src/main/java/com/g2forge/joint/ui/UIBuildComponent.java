@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -17,14 +16,10 @@ import com.g2forge.alexandria.java.core.resource.Resource;
 import com.g2forge.alexandria.java.function.IConsumer1;
 import com.g2forge.alexandria.java.io.HIO;
 import com.g2forge.alexandria.java.io.HTextIO;
-import com.g2forge.gearbox.command.converter.IMethodArgument;
-import com.g2forge.gearbox.command.converter.dumb.ArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Command;
 import com.g2forge.gearbox.command.converter.dumb.Constant;
 import com.g2forge.gearbox.command.converter.dumb.DumbCommandConverter;
 import com.g2forge.gearbox.command.converter.dumb.EnvPath;
-import com.g2forge.gearbox.command.converter.dumb.HDumbCommandConverter;
-import com.g2forge.gearbox.command.converter.dumb.IArgumentRenderer;
 import com.g2forge.gearbox.command.converter.dumb.Named;
 import com.g2forge.gearbox.command.converter.dumb.Working;
 import com.g2forge.gearbox.command.process.ProcessBuilderRunner;
@@ -107,23 +102,14 @@ public class UIBuildComponent implements IComponent {
 	}
 
 	public static interface IAngular extends ICommandInterface {
-		public class NonNullArgumentRenderer implements IArgumentRenderer<Object> {
-			@Override
-			public List<String> render(IMethodArgument<Object> argument) {
-				final Object value = argument.get();
-				if (value == null) return HCollection.emptyList();
-				return HDumbCommandConverter.computeString(argument, value.toString());
-			}
-		}
-
 		@Command({})
-		public Stream<String> build(@Working Path working, @EnvPath Path node, @Constant({ "run", "build", "--", "--prod" }) Path npm, @Named(value = "--output-path", joined = false) Path output, @Named(value = "--base-href", joined = false) @ArgumentRenderer(NonNullArgumentRenderer.class) String baseHref);
+		public Stream<String> build(@Working Path working, @EnvPath Path node, @Constant({ "run", "build", "--", "--prod" }) Path npm, @Named(value = "--output-path", joined = false) Path output, @Named(value = "--base-href", joined = false, skipNull = true) String baseHref);
 
 		@Command({})
 		public Stream<String> maps(@Working Path working, @EnvPath Path node, @Constant({ "run", "maps" }) Path npm, Path output);
 
 		@Command({})
-		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve", "--" }) Path npm, @Named(value = "--port", joined = false) @ArgumentRenderer(NonNullArgumentRenderer.class) Integer port);
+		public Stream<String> serve(@Working Path working, @EnvPath Path node, @Constant({ "run", "serve", "--" }) Path npm, @Named(value = "--port", joined = false, skipNull = true) Integer port);
 	}
 
 	public static class NonServeFileConversion extends FileConversion {
