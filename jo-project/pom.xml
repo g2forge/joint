@@ -10,14 +10,14 @@
 	<parent>
 		<groupId>com.g2forge.enigma</groupId>
 		<artifactId>en-project</artifactId>
-		<version>0.0.14-SNAPSHOT</version>
+		<version>0.0.15-SNAPSHOT</version>
 	</parent>
 
 	<properties>
-		<alexandria.version>0.0.21-SNAPSHOT</alexandria.version>
-		<enigma.version>0.0.14-SNAPSHOT</enigma.version>
-		<gearbox.version>0.0.12-SNAPSHOT</gearbox.version>
-		<habitat.version>0.0.8-SNAPSHOT</habitat.version>
+		<alexandria.version>0.0.22-SNAPSHOT</alexandria.version>
+		<enigma.version>0.0.15-SNAPSHOT</enigma.version>
+		<gearbox.version>0.0.13-SNAPSHOT</gearbox.version>
+		<habitat.version>0.0.9-SNAPSHOT</habitat.version>
 
 		<joint.organization>g2forge</joint.organization>
 		<joint.name>joint</joint.name>
